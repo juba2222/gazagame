@@ -1,0 +1,247 @@
+// i18n.js - Bilingual Arabic/English translations
+
+const LANG = {
+  current: 'ar',
+
+  toggle() {
+    this.current = this.current === 'ar' ? 'en' : 'ar';
+    document.documentElement.dir = this.current === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = this.current;
+  },
+
+  t(key) {
+    const val = this[this.current][key];
+    if (val === undefined) {
+      const fallback = this.current === 'ar' ? this.en[key] : this.ar[key];
+      return fallback !== undefined ? fallback : key;
+    }
+    return val;
+  },
+
+  ar: {
+    // Game title
+    game_title: 'هل ستنجو؟',
+    game_subtitle: 'تجربة مدني غزاوي خلال الحرب',
+
+    // Setup
+    setup_title: 'إعداد اللعبة',
+    your_name: 'اسمك',
+    your_name_placeholder: 'أدخل اسمك',
+    add_family: 'أضف أفراد العائلة',
+    member_name: 'الاسم',
+    member_age: 'العمر',
+    member_relation: 'الصلة',
+    add_member: '+ إضافة فرد',
+    max_members: 'الحد الأقصى 6 أفراد',
+    location_label: 'موقعك الأولي',
+    living_standard: 'مستوى المعيشة',
+    start_game: 'ابدأ',
+    language_toggle: 'English',
+
+    // Relations
+    spouse: 'زوج/زوجة',
+    child: 'ابن/ابنة',
+    parent: 'أب/أم',
+    sibling: 'أخ/أخت',
+
+    // Locations
+    north: 'شمال غزة',
+    gaza: 'مدينة غزة',
+    central: 'المنطقة الوسطى',
+    khanyunis: 'خان يونس',
+    rafah: 'رفح',
+
+    // Living standards
+    poor: 'فقير',
+    middle: 'متوسط',
+    welloff: 'ميسور',
+
+    // Resources
+    food: 'طعام',
+    water: 'ماء',
+    medicine: 'دواء',
+    money: 'مال',
+    fuel: 'وقود',
+
+    // Game UI
+    day: 'يوم',
+    phase: 'مرحلة',
+    family: 'العائلة',
+    resources: 'الموارد',
+    location: 'الموقع',
+    health: 'الصحة',
+    hunger: 'الجوع',
+    morale: 'المعنوية',
+    alive: 'حي',
+    dead: 'استشهد',
+    critical: 'حرج',
+
+    // Events
+    choose_action: 'اختر ما ستفعل:',
+    continue_btn: 'تابع',
+    no_choice: 'لا يوجد خيار...',
+
+    // Death scene
+    died_title: 'استُشهد',
+    died_hunger: 'مات جوعاً',
+    died_injury: 'استشهد من جراء القصف',
+    died_disease: 'توفي بسبب المرض',
+    died_thirst: 'مات عطشاً',
+    death_continue: 'تابع...',
+    real_stat_children: 'استشهد أكثر من 15,000 طفل في غزة.',
+    real_stat_hunger: 'مات عشرات الأطفال جوعاً في شمال غزة.',
+    real_stat_medical: 'دمر الاحتلال معظم المستشفيات في غزة.',
+
+    // End scene
+    end_title: 'انتهت رحلتك',
+    end_survived: 'نجا',
+    end_lost: 'فُقد',
+    end_days: 'أيام نجاة',
+    end_summary: 'ملخص الرحلة',
+    play_again: 'العب مجدداً',
+    share_story: 'شارك قصتك',
+    end_stat_header: 'الواقع في غزة:',
+    end_stat1: 'أكثر من 46,000 شهيد حتى يناير 2025',
+    end_stat2: 'أكثر من 110,000 جريح',
+    end_stat3: 'أكثر من 1.9 مليون نازح (85% من السكان)',
+    end_stat4: 'دمر أو تضرر أكثر من 60% من المباني',
+    end_stat5: 'مجاعة تطال الجميع في شمال غزة',
+    end_ceasefire: 'أُعلن وقف إطلاق النار في يناير 2025',
+    all_died: 'لم ينجُ أحد من عائلتك.',
+    some_survived: 'نجا بعض أفراد عائلتك.',
+    all_survived: 'نجت عائلتك بأكملها.',
+
+    // Phases
+    phase1_name: 'القصف المكثف',
+    phase2_name: 'النزوح الكبير',
+    phase3_name: 'الحصار والمجاعة',
+    phase4_name: 'اجتياح رفح',
+    phase5_name: 'هدنة جزئية',
+    phase6_name: 'عودة القصف',
+    phase7_name: 'لا مكان آمن',
+    phase8_name: 'هدنة يناير',
+
+    // UI messages
+    day_summary: 'ملخص اليوم',
+    morning: 'الصباح',
+    night: 'المساء',
+    warning_hunger: 'تحذير: بعض أفراد العائلة يعانون من الجوع الشديد',
+    warning_health: 'تحذير: صحة أحد أفراد العائلة في خطر',
+    ceasefire_msg: 'أُعلن وقف لإطلاق النار... لكن حتى متى؟',
+    displacement_msg: 'يجب الرحيل الآن. اترك كل شيء.',
+    days_unit: 'يوماً',
+
+    // Specific event messages
+    strike_nearby: 'قصف قريب',
+    running_low: 'الموارد تنفد',
+    aid_arrived: 'وصلت مساعدات',
+    neighbor_died: 'رحل جار',
+  },
+
+  en: {
+    game_title: 'Will You Survive?',
+    game_subtitle: 'Experience of a Gazan Civilian During the War',
+
+    setup_title: 'Game Setup',
+    your_name: 'Your Name',
+    your_name_placeholder: 'Enter your name',
+    add_family: 'Add Family Members',
+    member_name: 'Name',
+    member_age: 'Age',
+    member_relation: 'Relation',
+    add_member: '+ Add Member',
+    max_members: 'Maximum 6 members',
+    location_label: 'Starting Location',
+    living_standard: 'Living Standard',
+    start_game: 'Start',
+    language_toggle: 'عربي',
+
+    spouse: 'Spouse',
+    child: 'Child',
+    parent: 'Parent',
+    sibling: 'Sibling',
+
+    north: 'North Gaza',
+    gaza: 'Gaza City',
+    central: 'Central Area',
+    khanyunis: 'Khan Yunis',
+    rafah: 'Rafah',
+
+    poor: 'Poor',
+    middle: 'Middle Class',
+    welloff: 'Well-off',
+
+    food: 'Food',
+    water: 'Water',
+    medicine: 'Medicine',
+    money: 'Money',
+    fuel: 'Fuel',
+
+    day: 'Day',
+    phase: 'Phase',
+    family: 'Family',
+    resources: 'Resources',
+    location: 'Location',
+    health: 'Health',
+    hunger: 'Hunger',
+    morale: 'Morale',
+    alive: 'Alive',
+    dead: 'Martyred',
+    critical: 'Critical',
+
+    choose_action: 'Choose what to do:',
+    continue_btn: 'Continue',
+    no_choice: 'No choice...',
+
+    died_title: 'Died',
+    died_hunger: 'Died of starvation',
+    died_injury: 'Martyred in airstrike',
+    died_disease: 'Died of disease',
+    died_thirst: 'Died of thirst',
+    death_continue: 'Continue...',
+    real_stat_children: 'Over 15,000 children were killed in Gaza.',
+    real_stat_hunger: 'Dozens of children died of starvation in northern Gaza.',
+    real_stat_medical: 'The occupation destroyed most hospitals in Gaza.',
+
+    end_title: 'Your Journey Has Ended',
+    end_survived: 'Survived',
+    end_lost: 'Lost',
+    end_days: 'Days Survived',
+    end_summary: 'Journey Summary',
+    play_again: 'Play Again',
+    share_story: 'Share Your Story',
+    end_stat_header: 'The Reality in Gaza:',
+    end_stat1: 'Over 46,000 martyred by January 2025',
+    end_stat2: 'Over 110,000 injured',
+    end_stat3: 'Over 1.9 million displaced (85% of population)',
+    end_stat4: 'Over 60% of buildings destroyed or damaged',
+    end_stat5: 'Famine affecting everyone in northern Gaza',
+    end_ceasefire: 'A ceasefire was announced in January 2025',
+    all_died: 'None of your family survived.',
+    some_survived: 'Some of your family members survived.',
+    all_survived: 'Your entire family survived.',
+
+    phase1_name: 'Intense Bombardment',
+    phase2_name: 'The Great Displacement',
+    phase3_name: 'Siege & Famine',
+    phase4_name: 'Rafah Invasion',
+    phase5_name: 'Partial Ceasefire',
+    phase6_name: 'Bombardment Returns',
+    phase7_name: 'Nowhere is Safe',
+    phase8_name: 'January Ceasefire',
+
+    day_summary: 'Day Summary',
+    morning: 'Morning',
+    night: 'Evening',
+    warning_hunger: 'Warning: Some family members are severely hungry',
+    warning_health: 'Warning: A family member\'s health is at risk',
+    ceasefire_msg: 'A ceasefire was announced... but for how long?',
+    displacement_msg: 'You must leave now. Leave everything behind.',
+    days_unit: 'days',
+
+    strike_nearby: 'Strike Nearby',
+    running_low: 'Resources Running Low',
+    aid_arrived: 'Aid Arrived',
+    neighbor_died: 'A Neighbor Passed',
+  }
+};
