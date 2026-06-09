@@ -22,6 +22,8 @@ const LANG = {
     // Game title
     game_title: 'هل ستنجو؟',
     game_subtitle: 'تجربة مدني غزاوي خلال الحرب',
+    game_warning: 'هذه المحاكاة مبنية على أحداث حقيقية. المحتوى صعب عاطفياً.',
+    setup_lang: 'اللغة',
 
     // Setup
     setup_title: 'إعداد اللعبة',
@@ -243,5 +245,17 @@ const LANG = {
     running_low: 'Resources Running Low',
     aid_arrived: 'Aid Arrived',
     neighbor_died: 'A Neighbor Passed',
+
+    // Extra keys used in scenes
+    game_warning: 'This simulation is based on real events. The content is emotionally difficult.',
+    setup_lang: 'Language',
   }
 };
+
+// Global helper functions
+function setLang(lang) {
+  LANG.current = lang;
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = lang;
+  try { localStorage.setItem('gazagame_lang', lang); } catch(e) {}
+}
