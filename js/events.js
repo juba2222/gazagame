@@ -1,644 +1,600 @@
-// events.js - Events database
+// Real documented events from Gaza war Oct 2023 - Jan 2025
+// Sources: UN OCHA, WFP, IPC, WHO, UNICEF, HRW, Amnesty International
 
-const PHASES = [
-  { id: 1, nameKey: 'phase1_name', nameEn: 'Intense Bombardment',
-    month: 'Oct-Nov 2023', duration: 14,
-    dangerLevel: { north: 10, gaza: 8, central: 5, khanyunis: 3, rafah: 2 } },
-
-  { id: 2, nameKey: 'phase2_name', nameEn: 'The Great Displacement',
-    month: 'Nov-Dec 2023', duration: 10,
-    dangerLevel: { north: 10, gaza: 9, central: 6, khanyunis: 4, rafah: 2 } },
-
-  { id: 3, nameKey: 'phase3_name', nameEn: 'Siege & Famine',
-    month: 'Dec 2023 - Feb 2024', duration: 21,
-    dangerLevel: { north: 10, gaza: 10, central: 7, khanyunis: 5, rafah: 3 },
-    faminePressure: true },
-
-  { id: 4, nameKey: 'phase4_name', nameEn: 'Rafah Invasion',
-    month: 'May 2024', duration: 14,
-    dangerLevel: { north: 8, gaza: 8, central: 6, khanyunis: 7, rafah: 10 } },
-
-  { id: 5, nameKey: 'phase5_name', nameEn: 'Partial Ceasefire',
-    month: 'Jun-Jul 2024', duration: 7,
-    dangerLevel: { north: 5, gaza: 5, central: 3, khanyunis: 4, rafah: 6 },
-    ceasefire: true },
-
-  { id: 6, nameKey: 'phase6_name', nameEn: 'Bombardment Returns',
-    month: 'Aug-Oct 2024', duration: 14,
-    dangerLevel: { north: 9, gaza: 9, central: 8, khanyunis: 9, rafah: 9 } },
-
-  { id: 7, nameKey: 'phase7_name', nameEn: 'Nowhere is Safe',
-    month: 'Oct 2024+', duration: 14,
-    dangerLevel: { north: 10, gaza: 10, central: 10, khanyunis: 10, rafah: 10 },
-    faminePressure: true },
-
-  { id: 8, nameKey: 'phase8_name', nameEn: 'January Ceasefire',
-    month: 'Jan 2025', duration: 7,
-    ceasefire: true, finalPhase: true },
+const GAME_PHASES = [
+  {
+    id: 1, nameAr: 'القصف المكثف', nameEn: 'Intense Bombardment',
+    period: 'أكتوبر - نوفمبر 2023', periodEn: 'October - November 2023',
+    duration: 14, bgColor: '#1a0a0a', skyColor: '#3d0000',
+    danger: { north: 10, gaza: 8, central: 5, khanyunis: 3, rafah: 2 },
+    foodDecayRate: 4, waterDecayRate: 5, strikeChance: 0.40,
+    injuryChance: 0.20, homeDestroyChance: 0.25, medicineAvail: 0.15,
+    aidTrucksPerDay: 0, flourPriceUSD: 7,
+    realStatAr: 'في أكتوبر 2023 أُصدر أمر إخلاء لمليون ومئة ألف مواطن خلال 24 ساعة',
+    realStatEn: 'In October 2023, 1.1 million Gazans ordered to evacuate within 24 hours'
+  },
+  {
+    id: 2, nameAr: 'النزوح الكبير', nameEn: 'The Great Displacement',
+    period: 'نوفمبر - ديسمبر 2023', periodEn: 'November - December 2023',
+    duration: 10, bgColor: '#0d0d1a', skyColor: '#1a1a3d',
+    danger: { north: 10, gaza: 9, central: 6, khanyunis: 4, rafah: 2 },
+    foodDecayRate: 5, waterDecayRate: 5, strikeChance: 0.35,
+    injuryChance: 0.18, homeDestroyChance: 0.35, medicineAvail: 0.10,
+    aidTrucksPerDay: 200, flourPriceUSD: 100,
+    realStatAr: '1.7 مليون نازح - 75% من سكان غزة بحلول فبراير 2024',
+    realStatEn: '1.7 million displaced — 75% of Gaza population by February 2024'
+  },
+  {
+    id: 3, nameAr: 'الحصار والمجاعة', nameEn: 'Siege & Famine',
+    period: 'ديسمبر 2023 - فبراير 2024', periodEn: 'December 2023 - February 2024',
+    duration: 21, bgColor: '#0a0a0a', skyColor: '#1a1000',
+    danger: { north: 10, gaza: 10, central: 7, khanyunis: 5, rafah: 3 },
+    foodDecayRate: 7, waterDecayRate: 6, strikeChance: 0.35,
+    injuryChance: 0.22, homeDestroyChance: 0.20, medicineAvail: 0.05,
+    aidTrucksPerDay: 57, flourPriceUSD: 410, faminePressure: true,
+    realStatAr: 'مارس 2024: 31% من الأطفال دون عامين يعانون سوء تغذية حاداً في الشمال',
+    realStatEn: 'March 2024: 31% of children under 2 in North Gaza acutely malnourished'
+  },
+  {
+    id: 4, nameAr: 'اجتياح رفح', nameEn: 'Rafah Invasion',
+    period: 'مايو 2024', periodEn: 'May 2024',
+    duration: 14, bgColor: '#1a0800', skyColor: '#3d1500',
+    danger: { north: 8, gaza: 8, central: 6, khanyunis: 7, rafah: 10 },
+    foodDecayRate: 6, waterDecayRate: 6, strikeChance: 0.45,
+    injuryChance: 0.28, homeDestroyChance: 0.50, medicineAvail: 0.05,
+    aidTrucksPerDay: 6, flourPriceUSD: 200,
+    realStatAr: '26 مايو 2024: قصف مخيم تل السلطان - أُعلن آمناً قبل أسبوع - 45 قتيلاً',
+    realStatEn: 'May 26 2024: Tel al-Sultan bombed — declared safe one week earlier. 45 killed'
+  },
+  {
+    id: 5, nameAr: 'هدنة جزئية', nameEn: 'Partial Ceasefire',
+    period: 'يونيو - يوليو 2024', periodEn: 'June - July 2024',
+    duration: 7, bgColor: '#0a0d0a', skyColor: '#0d1a0d',
+    danger: { north: 6, gaza: 6, central: 4, khanyunis: 5, rafah: 7 },
+    foodDecayRate: 5, waterDecayRate: 5, strikeChance: 0.25,
+    injuryChance: 0.15, homeDestroyChance: 0.15, medicineAvail: 0.15,
+    aidTrucksPerDay: 69, flourPriceUSD: 150, ceasefire: true,
+    realStatAr: 'يوليو 2024: الأمم المتحدة تعلن رسمياً امتداد المجاعة لكامل القطاع',
+    realStatEn: 'July 2024: UN formally declared famine spread throughout entire Gaza Strip'
+  },
+  {
+    id: 6, nameAr: 'عودة القصف', nameEn: 'Bombardment Returns',
+    period: 'أغسطس - أكتوبر 2024', periodEn: 'August - October 2024',
+    duration: 14, bgColor: '#1a0505', skyColor: '#2d0a0a',
+    danger: { north: 9, gaza: 9, central: 9, khanyunis: 9, rafah: 9 },
+    foodDecayRate: 8, waterDecayRate: 7, strikeChance: 0.50,
+    injuryChance: 0.30, homeDestroyChance: 0.40, medicineAvail: 0.04,
+    aidTrucksPerDay: 69, flourPriceUSD: 300,
+    realStatAr: 'سبتمبر 2024: 83% من المساعدات الغذائية محجوبة. الطحين بالشمال: 1000 دولار/كيس',
+    realStatEn: 'September 2024: 83% of food aid blocked. North Gaza flour: $1,000 per bag'
+  },
+  {
+    id: 7, nameAr: 'لا مكان آمن', nameEn: 'Nowhere Is Safe',
+    period: 'أكتوبر 2024+', periodEn: 'October 2024+',
+    duration: 14, bgColor: '#050505', skyColor: '#0a0a0a',
+    danger: { north: 10, gaza: 10, central: 10, khanyunis: 10, rafah: 10 },
+    foodDecayRate: 10, waterDecayRate: 8, strikeChance: 0.55,
+    injuryChance: 0.35, homeDestroyChance: 0.55, medicineAvail: 0.02,
+    aidTrucksPerDay: 45, flourPriceUSD: 1000, faminePressure: true,
+    realStatAr: 'سبتمبر 2024: 66% من مباني غزة تضررت أو دُمرت — أكثر من 52 ألف مبنى',
+    realStatEn: 'September 2024: 66% of Gaza buildings damaged or destroyed — 52,000+ structures'
+  },
+  {
+    id: 8, nameAr: 'هدنة يناير', nameEn: 'January Ceasefire',
+    period: 'يناير 2025', periodEn: 'January 2025',
+    duration: 7, bgColor: '#050a05', skyColor: '#0a140a',
+    danger: { north: 2, gaza: 2, central: 2, khanyunis: 2, rafah: 2 },
+    foodDecayRate: 2, waterDecayRate: 2, strikeChance: 0.05,
+    injuryChance: 0.03, homeDestroyChance: 0.02, medicineAvail: 0.60,
+    aidTrucksPerDay: 500, flourPriceUSD: 20, ceasefire: true, finalPhase: true,
+    realStatAr: 'يناير 2025: عاد 376 ألف نازح للشمال — وجدوا ركاماً. 92% من الطرق محطمة',
+    realStatEn: 'January 2025: 376,000 returned north to find rubble — 92% of main roads destroyed'
+  }
 ];
 
-const EVENTS = [
-  // ============== BOMBARDMENT EVENTS ==============
-  {
-    id: 'evt_001',
-    phase: [1, 2, 6, 7],
-    locations: 'all',
-    title: { ar: 'قصف قريب من البيت', en: 'Airstrike Near Home' },
-    story: {
-      ar: 'سمعتَ دويّ انفجار ضخم. الجدران ترتجف. الزجاج يتكسر. يصرخ أحد أفراد عائلتك. الغارة كانت على المبنى المجاور مباشرةً. الدخان يتصاعد من النافذة.',
-      en: 'You hear a massive explosion. The walls shake. Glass shatters. A family member screams. The strike hit the building next door. Smoke rises from the window.'
-    },
-    choices: [
-      {
-        text: { ar: 'ابقَ داخل البيت ولا تتحرك', en: 'Stay inside, do not move' },
-        consequences: {
-          water: -1,
-          memberEffects: [{ target: 'random', health: -8, causeOfDeath: 'injury' }],
-          message: { ar: 'بقيتَ. سقطت شظايا لكن البيت صمد. أحد أفراد عائلتك أُصيب بجروح طفيفة.', en: 'You stayed. Shrapnel fell but the building held. A family member suffered minor injuries.' }
-        }
-      },
-      {
-        text: { ar: 'اهرب فوراً إلى الشارع', en: 'Flee immediately to the street' },
-        consequences: {
-          food: -1, water: -2,
-          memberEffects: [{ target: 'random', health: -20, causeOfDeath: 'injury' }],
-          message: { ar: 'ركضتم إلى الشارع وسط الفوضى. كانت غارة أخرى قريبة. أحد أفراد عائلتك أُصيب بجروح بالغة.', en: 'You ran into the street amid chaos. Another strike hit nearby. A family member was seriously wounded.' }
-        }
-      },
-      {
-        text: { ar: 'انزل إلى الطابق الأرضي', en: 'Go down to the ground floor' },
-        consequences: {
-          water: -1,
-          message: { ar: 'نزلتم إلى الطابق الأرضي وانتظرتم. مرّت الغارة. الجميع بخير نسبياً.', en: 'You went to the ground floor and waited. The strike passed. Everyone is relatively okay.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_002',
-    phase: [1, 2, 3, 6, 7],
-    locations: 'all',
-    title: { ar: 'قصف على طابور المساعدات', en: 'Strike on Aid Queue' },
-    story: {
-      ar: 'وصلت شاحنات مساعدات غذائية إلى الحي. تجمّع الناس بالآلاف. لكن الطابور طويل جداً وهناك أنباء عن وجود طائرات في المنطقة. طعامك ينفد.',
-      en: 'Aid trucks arrived in the neighborhood. Thousands gathered. But the queue is very long and there are reports of aircraft in the area. Your food is running out.'
-    },
-    choices: [
-      {
-        text: { ar: 'اذهب وانتظر في الطابور', en: 'Go and wait in the queue' },
-        consequences: {
-          food: 5, water: 3,
-          memberEffects: [{ target: 'player', health: -15, causeOfDeath: 'injury' }],
-          message: { ar: 'حصلتَ على الطعام. لكن حدث قصف مفاجئ على الطابور. أُصبتَ بجروح.', en: 'You got food. But a sudden strike hit the queue. You were wounded.' }
-        }
-      },
-      {
-        text: { ar: 'ابقَ في البيت رغم الجوع', en: 'Stay home despite the hunger' },
-        consequences: {
-          memberEffects: [{ target: 'random', hunger: 20 }],
-          message: { ar: 'بقيتَ. سمعتَ لاحقاً أن الطابور تعرّض لضربة جوية. قُتل عشرات الأشخاص.', en: 'You stayed. You heard later that the queue was hit by an airstrike. Dozens were killed.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_003',
-    phase: [1, 2, 3, 6, 7],
-    locations: ['north', 'gaza', 'central'],
-    title: { ar: 'غارة على المستشفى', en: 'Hospital Under Fire' },
-    story: {
-      ar: 'أحد أفراد عائلتك يحتاج علاجاً عاجلاً. لكن المستشفى القريب تعرّض لقصف الليلة الماضية. يعمل جزئياً. الطريق إليه خطر.',
-      en: 'A family member needs urgent medical care. But the nearby hospital was struck last night. It\'s partially operational. The road there is dangerous.'
-    },
-    choices: [
-      {
-        text: { ar: 'اذهب إلى المستشفى رغم الخطر', en: 'Go to the hospital despite the danger' },
-        consequences: {
-          medicine: 2,
-          memberEffects: [{ target: 'weakest', health: 20, sick: false }],
-          message: { ar: 'وصلتم إلى المستشفى. الأطباء منهكون لكنهم يعملون. حصل المريض على بعض العلاج.', en: 'You reached the hospital. The doctors are exhausted but working. The patient received some treatment.' }
-        }
-      },
-      {
-        text: { ar: 'استخدم ما تبقى من دواء في البيت', en: 'Use remaining medicine at home' },
-        consequences: {
-          medicine: -2,
-          memberEffects: [{ target: 'weakest', health: 10 }],
-          message: { ar: 'استخدمتَ ما تبقى من دواء. أسهم ذلك قليلاً. لكن الحالة تحتاج عناية طبية حقيقية.', en: 'You used the remaining medicine. It helped a little. But the condition needs real medical care.' }
-        }
-      },
-      {
-        text: { ar: 'لا شيء يمكن فعله', en: 'Nothing can be done' },
-        consequences: {
-          memberEffects: [{ target: 'weakest', health: -25, causeOfDeath: 'disease' }],
-          message: { ar: 'لا دواء. لا طبيب. الحالة تتدهور يوماً بعد يوم.', en: 'No medicine. No doctor. The condition worsens day by day.' }
-        }
-      }
-    ]
-  },
-
-  // ============== DISPLACEMENT EVENTS ==============
-  {
-    id: 'evt_004',
-    phase: [1, 2, 4],
-    locations: 'all',
-    title: { ar: 'أوامر إخلاء عسكرية', en: 'Military Evacuation Orders' },
-    story: {
-      ar: 'وصلت رسالة نصية على الهاتف: "سكان المنطقة يُطلب منهم المغادرة فوراً". في الخارج يصرخ الناس ويركضون. الجيران يحملون ما يستطيعون.',
-      en: 'A text message arrives: "Residents are ordered to evacuate immediately." Outside, people are shouting and running. Neighbors carry what they can.'
-    },
-    choices: [
-      {
-        text: { ar: 'اغادر الآن مع أقل ما يمكن', en: 'Leave now with as little as possible' },
-        consequences: {
-          displace: true,
-          message: { ar: 'غادرتم. تركتم معظم ممتلكاتكم. الطريق كان مروّعاً. وصلتم أخيراً إلى منطقة أكثر أماناً.', en: 'You left. You abandoned most of your belongings. The road was harrowing. You finally reached a safer area.' }
-        }
-      },
-      {
-        text: { ar: 'ابقَ. ربما تكون الأوامر مبالغاً فيها', en: 'Stay. Maybe the orders are exaggerated' },
-        consequences: {
-          memberEffects: [{ target: 'random', health: -35, causeOfDeath: 'injury' }],
-          dangerIncrease: 3,
-          message: { ar: 'بقيتَ. وقعت غارة على الحي. فقدنا أحد أفراد العائلة.', en: 'You stayed. The neighborhood was struck. We lost a family member.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_005',
-    phase: [2, 3, 4],
-    locations: 'all',
-    title: { ar: 'طريق النزوح مقطوع', en: 'Displacement Route Blocked' },
-    story: {
-      ar: 'أنتم في الطريق للنزوح نحو الجنوب. فجأة، اكتشفتم أن الطريق الرئيسي مقطوع. الجيش يمنع العبور. أمامك خياران كلاهما خطر.',
-      en: 'You\'re on your way south. Suddenly, you discover the main road is blocked. The military is preventing passage. Two options, both dangerous.'
-    },
-    choices: [
-      {
-        text: { ar: 'انتظر على جانب الطريق', en: 'Wait on the side of the road' },
-        consequences: {
-          food: -3, water: -3,
-          message: { ar: 'انتظرتم لساعات تحت الشمس. نفد الماء تقريباً. بعد اليوم الثاني فُتح الطريق جزئياً.', en: 'You waited for hours in the sun. Water nearly ran out. After the second day, the road partially opened.' }
-        }
-      },
-      {
-        text: { ar: 'خذ طريق الحقول البديل', en: 'Take the alternative field path' },
-        consequences: {
-          food: -2, water: -4,
-          memberEffects: [{ target: 'random', health: -20, causeOfDeath: 'injury' }],
-          message: { ar: 'سلكتم الطريق البديل عبر الحقول. كانت هناك قناصة. أُصيب أحد أفراد العائلة.', en: 'You took the alternative path through the fields. There were snipers. A family member was shot.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_006',
-    phase: [2, 4],
-    locations: 'all',
-    title: { ar: 'فقدان الحقائب أثناء النزوح', en: 'Bags Lost During Displacement' },
-    story: {
-      ar: 'في زحمة النزوح الرهيبة، سقطت إحدى الحقائب التي تحتوي على الطعام والأدوية. لم تستطع العودة لاسترجاعها.',
-      en: 'In the terrible displacement chaos, one of the bags containing food and medicine was lost. You could not go back for it.'
-    },
-    noChoice: true,
-    consequences: {
-      food: -4, water: -3, medicine: -2,
-      message: { ar: 'فقدتَ الحقيبة. لا شيء يعوضها. هكذا يبدو النزوح — تخسر شيئاً في كل خطوة.', en: 'The bag was lost. Nothing can replace it. This is what displacement looks like — losing something with every step.' }
-    }
-  },
-
-  // ============== FAMINE EVENTS ==============
-  {
-    id: 'evt_007',
-    phase: [3, 7],
-    locations: 'all',
-    title: { ar: 'وصول شاحنات مساعدات نادرة', en: 'Rare Aid Trucks Arrive' },
-    story: {
-      ar: 'أُعلن أن شاحنتين فقط من المساعدات الغذائية ستصل اليوم للمنطقة. لكن هناك أكثر من ألف عائلة تنتظر. الحصة لن تكفي الجميع.',
-      en: 'Only two aid trucks will arrive in the area today. But over a thousand families are waiting. The quota won\'t be enough for everyone.'
-    },
-    choices: [
-      {
-        text: { ar: 'اذهب مبكراً وانتظر ساعات', en: 'Go early and wait for hours' },
-        consequences: {
-          food: 4, water: 3,
-          memberEffects: [{ target: 'player', health: -5 }],
-          message: { ar: 'حصلتَ على بعض الطعام والماء. كنتَ من المحظوظين الذين وصلوا قبل نفاد المساعدات.', en: 'You got some food and water. You were lucky enough to arrive before the aid ran out.' }
-        }
-      },
-      {
-        text: { ar: 'لا تذهب — الازدحام خطير', en: 'Don\'t go — the crowd is dangerous' },
-        consequences: {
-          memberEffects: [{ target: 'random', hunger: 25 }],
-          message: { ar: 'لم تذهب. نفدت المساعدات قبل أن يحصل الكثيرون على شيء. تُرك عائلتك بلا طعام اليوم.', en: 'You didn\'t go. Aid ran out before most got anything. Your family was left without food today.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_008',
-    phase: [3, 4, 6, 7],
-    locations: 'all',
-    title: { ar: 'السوق السوداء', en: 'The Black Market' },
-    story: {
-      ar: 'أحد الجيران يعرض عليك بيع كيس دقيق وعلب معلبات بسعر خيالي: 200 دولار. أسعار السوق ارتفعت 40 ضعفاً. لكن أطفالك جائعون منذ يومين.',
-      en: 'A neighbor offers to sell you a bag of flour and canned food for $200 — 40 times the normal price. Your children have been hungry for two days.'
-    },
-    choices: [
-      {
-        text: { ar: 'ادفع. لا خيار آخر', en: 'Pay. No other choice' },
-        consequences: {
-          food: 5, money: -200,
-          memberEffects: [{ target: 'random', hunger: -30 }],
-          message: { ar: 'دفعتَ ما تبقى من مدخراتك. حصلتَ على طعام. لكن المال يتآكل بسرعة مرعبة.', en: 'You paid what\'s left of your savings. You got food. But money is disappearing at a terrifying rate.' }
-        }
-      },
-      {
-        text: { ar: 'رفض — هذا استغلال', en: 'Refuse — this is exploitation' },
-        consequences: {
-          memberEffects: [{ target: 'child', hunger: 30, health: -10 }],
-          message: { ar: 'رفضتَ. لكن الجوع لا يرحم. الأطفال يبكون ليلاً من الألم.', en: 'You refused. But hunger is merciless. The children cry at night from pain.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_009',
-    phase: [3, 5, 7],
-    locations: 'all',
-    title: { ar: 'جار يطلب مشاركة الطعام', en: 'Neighbor Asks to Share Food' },
-    story: {
-      ar: 'طرق بابك جارك أبو محمد وهو يحمل طفلاً رضيعاً. قال: "منذ ثلاثة أيام لم يأكل أحد في بيتنا." عندك كمية طعام قليلة جداً لعائلتك.',
-      en: 'Your neighbor Abu Muhammad knocked on your door carrying an infant. He said: "No one in our house has eaten for three days." You have very little food left for your own family.'
-    },
-    choices: [
-      {
-        text: { ar: 'شارك ما لديك', en: 'Share what you have' },
-        consequences: {
-          food: -3,
-          memberEffects: [{ target: 'random', morale: 15 }],
-          message: { ar: 'أعطيتَهم بعض الطعام. شكر الله بدموع في عينيه. لكن طعامك نقص. صعب.', en: 'You gave them some food. He thanked God with tears in his eyes. But your food decreased. Hard.' }
-        }
-      },
-      {
-        text: { ar: 'اعتذر — ليس لديك ما يكفي', en: 'Apologize — you don\'t have enough' },
-        consequences: {
-          memberEffects: [{ target: 'random', morale: -20 }],
-          message: { ar: 'اعتذرتَ. أغلقتَ الباب. صوت الطفل الباكي لم يفارق أذنيك طوال الليل.', en: 'You apologized. You closed the door. The sound of the crying baby didn\'t leave your ears all night.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_010',
-    phase: [3, 7],
-    locations: ['north', 'gaza'],
-    title: { ar: 'طفل يبكي من الجوع', en: 'Child Crying From Hunger' },
-    story: {
-      ar: 'منذ أسبوعين لم يأكل الطفل وجبة كاملة. وجهه اصفرّ. ينام أكثر مما يستيقظ. يبكي لكن لا دموع — حتى الدموع نفدت.',
-      en: 'For two weeks, the child hasn\'t had a full meal. His face has yellowed. He sleeps more than he wakes. He cries, but no tears — even tears have run out.'
-    },
-    noChoice: true,
-    consequences: {
-      memberEffects: [{ target: 'child', health: -20, hunger: 20 }],
-      message: { ar: 'لا شيء يمكن فعله. المجاعة ليست حادثة — إنها سياسة.', en: 'Nothing can be done. Famine is not an accident — it is policy.' }
-    }
-  },
-
-  // ============== CEASEFIRE EVENTS ==============
-  {
-    id: 'evt_011',
-    phase: [5, 8],
-    locations: 'all',
-    title: { ar: 'إعلان هدنة', en: 'Ceasefire Announced' },
-    story: {
-      ar: 'أُعلن عن وقف مؤقت لإطلاق النار. في الشارع يبكي الناس من الفرحة والحزن معاً. تذكّرتَ من خسرتَهم حتى الآن. هل تعود إلى بيتك؟',
-      en: 'A temporary ceasefire is announced. In the street, people cry from both joy and grief. You remember who you\'ve lost so far. Do you return home?'
-    },
-    choices: [
-      {
-        text: { ar: 'حاول العودة إلى البيت', en: 'Try to return home' },
-        consequences: {
-          message: { ar: 'عدتَ إلى حيك. ما رأيتَه لن تنساه. لكن على الأقل أنتم أحياء.', en: 'You returned to your neighborhood. What you saw, you will never forget. But at least you\'re alive.' }
-        }
-      },
-      {
-        text: { ar: 'ابقَ حيث أنتَ — لا تثق بالهدنة', en: 'Stay where you are — don\'t trust the ceasefire' },
-        consequences: {
-          memberEffects: [{ target: 'random', morale: -10 }],
-          message: { ar: 'بقيتَ. وكان صوابك — انتهت الهدنة بعد أيام وعاد القصف.', en: 'You stayed. You were right — the ceasefire ended after days and bombing resumed.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_012',
-    phase: [5, 8],
-    locations: 'all',
-    title: { ar: 'العودة إلى البيت المدمّر', en: 'Returning to Find Home Destroyed' },
-    story: {
-      ar: 'في الهدنة، عدتَ إلى بيتك. وجدتَ حطاماً. الجدران مهدّمة. الصور العائلية على الأرض ممزقة. لا شيء مما تركتَه باقٍ.',
-      en: 'During the ceasefire, you returned home. You found rubble. Walls collapsed. Family photos torn on the ground. Nothing you left behind remains.'
-    },
-    noChoice: true,
-    consequences: {
-      memberEffects: [{ target: 'random', morale: -30 }, { target: 'random', morale: -25 }],
-      message: { ar: 'البيت هو الذاكرة. حين يُهدم البيت، تُهدم أجزاء من الروح معه.', en: 'The home is memory. When the home is destroyed, parts of the soul are destroyed with it.' }
-    }
-  },
-
-  {
-    id: 'evt_013',
-    phase: [5, 6, 8],
-    locations: 'all',
-    title: { ar: 'اكتشاف جيران ماتوا', en: 'Discovering Neighbors Who Died' },
-    story: {
-      ar: 'في الهدنة عبرتَ إلى المبنى المجاور. وجدتَ أسرة كاملة تحت الأنقاض. كانوا جيرانك منذ سنوات. أطفالهم كانوا يلعبون مع أطفالك.',
-      en: 'During the ceasefire you crossed to the adjacent building. You found an entire family under the rubble. They were your neighbors for years. Their children played with yours.'
-    },
-    noChoice: true,
-    consequences: {
-      memberEffects: [{ target: 'random', morale: -40, health: -5 }],
-      message: { ar: 'لا كلمات كافية. في غزة، كل عائلة فقدت عائلة أخرى تعرفها.', en: 'No words are enough. In Gaza, every family lost another family they knew.' }
-    }
-  },
-
-  // ============== DISEASE EVENTS ==============
-  {
-    id: 'evt_014',
-    phase: [3, 4, 5, 6, 7],
-    locations: 'all',
-    title: { ar: 'مياه ملوثة', en: 'Contaminated Water' },
-    story: {
-      ar: 'شبكة المياه مقطوعة. المياه التي يجلبها الجيران من المجاري المكشوفة. أحد أفراد عائلتك بدأ يعاني من إسهال حاد وحمى.',
-      en: 'The water network is cut. Water neighbors bring comes from open sewage. A family member started suffering from severe diarrhea and fever.'
-    },
-    choices: [
-      {
-        text: { ar: 'استخدم الدواء المتبقي لعلاجه', en: 'Use remaining medicine to treat them' },
-        consequences: {
-          medicine: -2,
-          memberEffects: [{ target: 'random', health: 15, sick: false }],
-          message: { ar: 'ساعد الدواء في تخفيف الأعراض. لكن مخزون الدواء ينفد.', en: 'The medicine helped reduce symptoms. But medicine supplies are running out.' }
-        }
-      },
-      {
-        text: { ar: 'لا دواء — الراحة فقط', en: 'No medicine — rest only' },
-        consequences: {
-          memberEffects: [{ target: 'random', sick: true, health: -15 }],
-          message: { ar: 'بدون دواء تتفاقم الحالة. الجسم المنهك من الجوع لا يملك مناعة.', en: 'Without medicine the condition worsens. A body exhausted from hunger has no immunity.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_015',
-    phase: [3, 5, 6, 7],
-    locations: 'all',
-    title: { ar: 'نفاد الدواء الضروري', en: 'Critical Medicine Ran Out' },
-    story: {
-      ar: 'أحد أفراد عائلتك مريض ويحتاج دواءً يومياً. الصيدليات خالية منذ أسابيع. المستشفى الوحيد لا يملك المخزون الكافي.',
-      en: 'A family member is sick and needs daily medication. Pharmacies have been empty for weeks. The only hospital doesn\'t have enough stock.'
-    },
-    choices: [
-      {
-        text: { ar: 'ابحث عن دواء في المنطقة المجاورة', en: 'Search for medicine in the neighboring area' },
-        consequences: {
-          medicine: 1,
-          memberEffects: [{ target: 'player', health: -10 }],
-          message: { ar: 'وجدتَ القليل بعد بحث مضنٍ. نجح بعضه في إبطاء تدهور الحالة.', en: 'You found a little after exhausting searches. Some of it slowed the deterioration.' }
-        }
-      },
-      {
-        text: { ar: 'لا شيء متاح', en: 'Nothing available' },
-        consequences: {
-          memberEffects: [{ target: 'weakest', health: -30, sick: true, causeOfDeath: 'disease' }],
-          message: { ar: 'لا دواء في غزة. ما يمكن علاجه في أي بلد آخر يقتل هنا.', en: 'No medicine in Gaza. What can be treated anywhere else kills here.' }
-        }
-      }
-    ]
-  },
-
-  // ============== ADDITIONAL EVENTS ==============
-  {
-    id: 'evt_016',
-    phase: [1, 2, 6],
-    locations: ['north', 'gaza'],
-    title: { ar: 'انقطاع الكهرباء والمولد', en: 'Power and Generator Cut Out' },
-    story: {
-      ar: 'انقطعت الكهرباء منذ 20 يوماً. اليوم نفد الوقود من مولد الكهرباء الوحيد في البناية. الأجهزة الطبية لأحد الجيران المرضى ستتوقف.',
-      en: 'Electricity has been cut for 20 days. Today the fuel ran out from the building\'s only generator. Medical devices for a sick neighbor will stop.'
-    },
-    choices: [
-      {
-        text: { ar: 'أعطهم جزءاً من وقودنا', en: 'Give them some of our fuel' },
-        consequences: {
-          fuel: -2,
-          memberEffects: [{ target: 'random', morale: 10 }],
-          message: { ar: 'أعطيتهم الوقود. عاشت المريضة ليوم آخر. نظرت إليك وقالت شيئاً لم تسمعه.', en: 'You gave them the fuel. The sick woman lived another day. She looked at you and said something you couldn\'t hear.' }
-        }
-      },
-      {
-        text: { ar: 'الوقود لعائلتنا فقط', en: 'The fuel is for our family only' },
-        consequences: {
-          memberEffects: [{ target: 'random', morale: -20 }],
-          message: { ar: 'احتفظتَ بالوقود. ماتت المريضة في الليل. زوجها طرق بابك صباحاً ولم يقل شيئاً.', en: 'You kept the fuel. The sick woman died in the night. Her husband knocked on your door in the morning and said nothing.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_017',
-    phase: [4, 6, 7],
-    locations: ['rafah', 'khanyunis', 'central'],
-    title: { ar: 'قصف على خيام النازحين', en: 'Strike on Displacement Tents' },
-    story: {
-      ar: 'أنتم في مخيم للنازحين. في الفجر، ضربت غارة جوية الخيام المجاورة. الصراخ. الدخان. الناس يركضون. لا مكان آمن حتى في خيمة النزوح.',
-      en: 'You\'re in a displacement camp. At dawn, an airstrike hit the adjacent tents. Screaming. Smoke. People running. Even a displacement tent isn\'t safe.'
-    },
-    noChoice: true,
-    consequences: {
-      food: -2, water: -2,
-      memberEffects: [{ target: 'random', health: -25, causeOfDeath: 'injury' }],
-      message: { ar: 'في غزة، لا يوجد مكان محدد بـ"آمن". 92% من أماكن الإيواء تعرضت للقصف.', en: 'In Gaza, no place is designated "safe." 92% of shelter locations came under fire.' }
-    }
-  },
-
-  {
-    id: 'evt_018',
-    phase: [2, 3, 4, 7],
-    locations: 'all',
-    title: { ar: 'اتصال بأحد الأقارب في الخارج', en: 'Call from a Relative Abroad' },
-    story: {
-      ar: 'اتصل بك قريب من خارج غزة. يبكي. يقول "كيف أساعدك؟" يريد إرسال مال عبر التحويلات. لكن البنوك مغلقة وشبكة الإنترنت تنقطع كل دقيقة.',
-      en: 'A relative from outside Gaza calls. They are crying. "How can I help you?" They want to send money through transfers. But banks are closed and the internet cuts every minute.'
-    },
-    choices: [
-      {
-        text: { ar: 'اشرح الوضع وحاول ترتيب تحويل', en: 'Explain the situation and try to arrange a transfer' },
-        consequences: {
-          money: 300,
-          message: { ar: 'نجح التحويل جزئياً. وصل بعض المال عبر مسالك غير رسمية. الحياة مستمرة.', en: 'The transfer partially succeeded. Some money arrived through informal channels. Life continues.' }
-        }
-      },
-      {
-        text: { ar: 'أغلق الخط — لا يمكن الشرح', en: 'End the call — impossible to explain' },
-        consequences: {
-          memberEffects: [{ target: 'player', morale: -15 }],
-          message: { ar: 'أغلقتَ الخط. بعض الأشياء لا يمكن شرحها لمن لا يعيشها.', en: 'You ended the call. Some things can\'t be explained to those not living it.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_019',
-    phase: [3, 6, 7],
-    locations: 'all',
-    title: { ar: 'قرار: ابقَ أم ارحل؟', en: 'Decision: Stay or Leave?' },
-    story: {
-      ar: 'تتشكل قافلة نزوح جديدة باتجاه الجنوب. يقول بعضهم أن الجنوب أكثر أماناً الآن. لكن رحلتم مرة من قبل وخسرتم كل شيء. لا تعرف ما الصواب.',
-      en: 'A new displacement convoy forms heading south. Some say the south is safer now. But you\'ve left before and lost everything. You don\'t know what\'s right.'
-    },
-    choices: [
-      {
-        text: { ar: 'انضم للقافلة وارحل', en: 'Join the convoy and leave' },
-        consequences: {
-          displace: true,
-          message: { ar: 'رحلتم مرة أخرى. المرة الثالثة أو الرابعة. لا أحد يحسب.', en: 'You left again. The third or fourth time. No one counts anymore.' }
-        }
-      },
-      {
-        text: { ar: 'ابقَ — لا تستطيع التحمّل أكثر', en: 'Stay — you can\'t bear more displacement' },
-        consequences: {
-          dangerIncrease: 2,
-          memberEffects: [{ target: 'random', morale: 10 }],
-          message: { ar: 'بقيتَ. ما زال البيت موجوداً — أو ما تبقى منه. البقاء بحد ذاته مقاومة.', en: 'You stayed. The home still exists — or what\'s left of it. Staying is itself resistance.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_020',
-    phase: [1, 2, 3, 4, 5, 6, 7, 8],
-    locations: 'all',
-    title: { ar: 'يوم بلا أحداث — فقط انتظار', en: 'A Day Without Events — Just Waiting' },
-    story: {
-      ar: 'لم يحدث شيء مميز اليوم. لا أحداث. مجرد يوم آخر من الانتظار والخوف والجوع. هذا هو أصعب نوع من الأيام.',
-      en: 'Nothing special happened today. No events. Just another day of waiting, fear, and hunger. This is the hardest kind of day.'
-    },
-    noChoice: true,
-    consequences: {
-      memberEffects: [{ target: 'random', morale: -8 }],
-      message: { ar: 'الحياة في غزة ليست فقط لحظات القصف. إنها أيضاً كل هذه الساعات بين القصفات.', en: 'Life in Gaza is not only the moments of bombing. It\'s also all the hours between them.' }
-    }
-  },
-
-  {
-    id: 'evt_021',
-    phase: [3, 6, 7],
-    locations: 'all',
-    title: { ar: 'مقتل صحفي في الحي', en: 'Journalist Killed in the Neighborhood' },
-    story: {
-      ar: 'كان يوثّق الأوضاع في الحي. قُتل اليوم برصاصة قناص وهو يحمل كاميرته. قالوا إنه كان آخر شاهد على ما يحدث هنا.',
-      en: 'He was documenting conditions in the neighborhood. Today he was killed by a sniper\'s bullet while holding his camera. They said he was the last witness to what happens here.'
-    },
-    noChoice: true,
-    consequences: {
-      memberEffects: [{ target: 'random', morale: -20 }],
-      message: { ar: 'قُتل أكثر من 100 صحفي في غزة. الأعلى في تاريخ الصراعات الحديثة.', en: 'More than 100 journalists were killed in Gaza. The highest in modern conflict history.' }
-    }
-  },
-
-  {
-    id: 'evt_022',
-    phase: [5, 8],
-    locations: 'all',
-    title: { ar: 'إفراج عن أسرى', en: 'Prisoner Exchange' },
-    story: {
-      ar: 'في إطار صفقة تبادل، أُطلق سراح بعض الأسرى. في الشارع فرحة مشوبة بالحزن على من لم يعودوا بعد.',
-      en: 'As part of a prisoner exchange deal, some captives were released. In the streets, joy is tinged with grief for those who haven\'t returned yet.'
-    },
-    noChoice: true,
-    consequences: {
-      memberEffects: [{ target: 'random', morale: 15 }],
-      message: { ar: 'لحظات الفرح في غزة نادرة ولكنها تُحيي الروح.', en: 'Moments of joy in Gaza are rare but they revive the spirit.' }
-    }
-  },
-
-  {
-    id: 'evt_023',
-    phase: [2, 3, 4],
-    locations: 'all',
-    title: { ar: 'فرصة مغادرة القطاع', en: 'Chance to Leave Gaza' },
-    story: {
-      ar: 'فُتح معبر رفح لفترة قصيرة. يمكن مغادرة القطاع لمن لديه جواز سفر أجنبي أو تأشيرة. لكن معظم أفراد عائلتك لا يملكون هذا الخيار.',
-      en: 'Rafah crossing opened briefly. Those with foreign passports or visas can leave. But most of your family doesn\'t have this option.'
-    },
-    choices: [
-      {
-        text: { ar: 'اغادر أنتَ وحدك إن كان بإمكانك', en: 'Leave by yourself if you can' },
-        consequences: {
-          message: { ar: 'غادرتَ. تركتَ عائلتك. هذا الخيار ليس خياراً حقيقياً.', en: 'You left. You abandoned your family. This choice is not a real choice.' }
-        }
-      },
-      {
-        text: { ar: 'لا تغادر — العائلة لا تتجزأ', en: 'Don\'t leave — family stays together' },
-        consequences: {
-          memberEffects: [{ target: 'random', morale: 20 }],
-          message: { ar: 'بقيتَ مع عائلتك. في غزة، البقاء معاً هو كل ما تملكه.', en: 'You stayed with your family. In Gaza, staying together is all you have.' }
-        }
-      }
-    ]
-  },
-
-  {
-    id: 'evt_024',
-    phase: [7, 8],
-    locations: 'all',
-    title: { ar: 'بعد 400 يوم', en: 'After 400 Days' },
-    story: {
-      ar: 'مرّت أكثر من 400 يوم. لا أحد تخيّل هذا يستمر هكذا. الجوع متواصل. القصف متواصل. والعالم ما زال يتابع.',
-      en: 'More than 400 days have passed. No one imagined this would go on like this. Hunger continues. Bombing continues. And the world is still watching.'
-    },
-    noChoice: true,
-    consequences: {
-      memberEffects: [{ target: 'random', morale: -15 }, { target: 'random', hunger: 10 }],
-      message: { ar: 'الصمود ليس بطولة مختارة — إنه الخيار الوحيد المتاح.', en: 'Resilience is not a chosen heroism — it is the only available option.' }
-    }
-  },
-];
-
-// Helper: get events for current phase and location
-function getAvailableEvents(phaseId, location) {
-  return EVENTS.filter(ev => {
-    const phaseMatch = ev.phase.includes(phaseId);
-    const locMatch = ev.locations === 'all' || ev.locations.includes(location);
-    return phaseMatch && locMatch;
+// Helper: pick random event for current phase and location
+function pickRandomEvent(phaseId, location, recentIds) {
+  const pool = GAME_EVENTS.filter(e => {
+    if (!e.phase.includes(phaseId)) return false;
+    if (e.locations !== 'all' && !e.locations.includes(location)) return false;
+    if (e.forced && e.triggerDay) return false; // forced events handled separately
+    if (recentIds.includes(e.id)) return false;
+    return true;
   });
+  if (!pool.length) return GAME_EVENTS.find(e => e.phase.includes(phaseId)) || null;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// Pick a random event (weighted toward non-noChoice first)
-function pickRandomEvent(phaseId, location, recentIds = []) {
-  let pool = getAvailableEvents(phaseId, location);
-  if (pool.length === 0) pool = EVENTS.filter(ev => ev.phase.includes(phaseId));
-  if (pool.length === 0) pool = EVENTS;
+// Helper: get forced event for a specific day in a phase
+function getForcedEvent(phaseId, dayWithinPhase, location) {
+  return GAME_EVENTS.find(e =>
+    e.phase.includes(phaseId) &&
+    e.forced === true &&
+    e.triggerDay === dayWithinPhase &&
+    (e.locations === 'all' || e.locations.includes(location))
+  ) || null;
+}
 
-  // Filter out recently seen events
-  const fresh = pool.filter(ev => !recentIds.includes(ev.id));
-  const candidates = fresh.length > 0 ? fresh : pool;
+const GAME_EVENTS = [
+  // PHASE 1
+  {
+    id: 'p1_evacuation_order', phase: [1], locations: 'all', triggerDay: 1, forced: true,
+    titleAr: 'أمر الإخلاء', titleEn: 'Evacuation Order',
+    storyAr: 'الساعة 6 صباحاً. سقطت منشورات من الطائرات:\n"على سكان شمال غزة الانتقال فوراً جنوب وادي غزة.\nلديكم 24 ساعة."\n\nمليون ومئة ألف إنسان يواجهون نفس القرار.',
+    storyEn: '6 AM. Leaflets from planes:\n"All residents of Northern Gaza must move south of Wadi Gaza immediately.\nYou have 24 hours."\n\n1.1 million people face the same decision.',
+    choices: [
+      {
+        textAr: 'نرحل الآن', textEn: 'Leave now',
+        consequences: { food: -3, water: -2, money: -100, displacement: true, newLocation: 'central',
+          messageAr: 'غادرتم. الطريق مكتظ بمئات الآلاف.', messageEn: 'You fled. Road packed with hundreds of thousands.' }
+      },
+      {
+        textAr: 'نبقى في بيتنا', textEn: 'Stay — our home',
+        consequences: { dangerIncrease: 3,
+          messageAr: 'بقيتم. الحي يفرغ حولكم. الخطر يتصاعد.', messageEn: 'You stayed. Neighborhood empties. Danger rises.' }
+      }
+    ],
+    realFactAr: 'الأمم المتحدة: الأمر "مستحيل تنفيذه بأمان"',
+    realFactEn: 'UN called the order "impossible to implement safely"'
+  },
+  {
+    id: 'p1_jabalia_strike', phase: [1], locations: ['north','gaza'], triggerDay: 3, forced: false,
+    titleAr: 'غارة على مخيم جباليا', titleEn: 'Jabalia Camp Airstrike',
+    storyAr: '31 أكتوبر. انفجار ضخم.\nالغارة استهدفت جباليا — أكثر المناطق اكتظاظاً.\nمبانٍ دُمرت بالكامل. الجيران يهرعون.',
+    storyEn: 'October 31. Massive explosion.\nStrike on Jabalia — most densely populated area.\nBuildings completely destroyed. Neighbors rushing.',
+    choices: [
+      {
+        textAr: 'اذهب للمساعدة', textEn: 'Go help with rescue',
+        consequences: { food: -1, water: -1, medicine: -1,
+          memberEffects: [{ target: 'self', health: -15 }], morale: +10,
+          messageAr: 'ساعدت في إنقاذ عائلة. لكن تعرضت لخطر الغارات الثانية.',
+          messageEn: 'Helped save a family. But exposed to secondary strikes.' }
+      },
+      {
+        textAr: 'ابقَ — غارات ثانية قادمة', textEn: 'Stay inside — secondary strikes',
+        consequences: { morale: -15,
+          messageAr: 'بقيت. سمعت أصوات البحث عن الناجين طوال الليل.',
+          messageEn: 'Stayed. Heard search for survivors all night.' }
+      }
+    ],
+    realFactAr: '31 أكتوبر - 1 نوفمبر 2023: أكثر من 130 قتيلاً في غارتين خلال 24 ساعة',
+    realFactEn: 'Oct 31 - Nov 1, 2023: 130+ killed in two strikes within 24 hours'
+  },
+  {
+    id: 'p1_hospital_fuel', phase: [1], locations: 'all', triggerDay: 5, forced: false,
+    titleAr: 'المستشفى بلا وقود', titleEn: 'Hospital Out of Fuel',
+    storyAr: 'وزارة الصحة: المولدات ستتوقف خلال 48 ساعة.\n36 طفلاً حديث الولادة في الحاضنات.\nأحد أفراد أسرتك مصاب في المستشفى.',
+    storyEn: 'Health Ministry: Generators stopping in 48 hours.\n36 newborns in incubators.\nA family member is injured at the hospital.',
+    choices: [
+      {
+        textAr: 'أحضره للبيت', textEn: 'Bring them home',
+        consequences: { food: -1, water: -1, money: -50,
+          memberEffects: [{ target: 'random', health: +10 }],
+          messageAr: 'أخرجته. أسلم من مستشفى بلا كهرباء.',
+          messageEn: 'Brought home. Safer than hospital without power.' }
+      },
+      {
+        textAr: 'يحتاج رعاية طبية', textEn: 'Needs medical care — stay',
+        consequences: { memberEffects: [{ target: 'random', health: -20 }],
+          messageAr: 'انقطعت الكهرباء ليلاً. حالته تدهورت.',
+          messageEn: 'Power cut at night. Condition worsened.' }
+      }
+    ],
+    realFactAr: '12 نوفمبر 2023: وفاة مريضَي ICU و6 أطفال خدج بعد انقطاع كهرباء مستشفى الشفاء',
+    realFactEn: 'Nov 12, 2023: 2 ICU patients and 6 premature infants died when Al-Shifa lost power'
+  },
+  {
+    id: 'p1_water_cut', phase: [1], locations: 'all', triggerDay: 7, forced: true, noChoice: true,
+    titleAr: 'انقطاع المياه', titleEn: 'Water Cut Off',
+    storyAr: 'توقف الماء تماماً.\nمحطة التحلية أُغلقت.\nخط المياه الإسرائيلي انخفض 78%.\nما تبقى يكفي يومين.',
+    storyEn: 'Water completely stopped.\nDesalination plant shut down.\nIsraeli pipeline reduced 78%.\nWhat remains: two days.',
+    consequences: { water: -8, memberEffects: [{ target: 'all', health: -5 }],
+      messageAr: 'متوسط المياه: 3 لترات/شخص/يوم. الحد الأدنى للبقاء: 15 لتراً.',
+      messageEn: 'Available water: 3L/person/day. WHO survival minimum: 15L.' },
+    realFactAr: 'نوفمبر 2023: انخفاض 94% في إمداد المياه. أطفال يحصلون على 1.5 لتر/يوم',
+    realFactEn: 'November 2023: 94% drop in water supply. Children got only 1.5L per day'
+  },
 
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  // PHASE 2
+  {
+    id: 'p2_ceasefire_week', phase: [2], locations: 'all', triggerDay: 2, forced: true,
+    titleAr: 'هدنة!', titleEn: 'Ceasefire!',
+    storyAr: '24 نوفمبر. صمت مفاجئ.\nالراديو: هدنة إنسانية 4 أيام.\nالناس يخرجون للمرة الأولى منذ أسابيع.\nهل تذهب لبيتك في الشمال؟',
+    storyEn: 'November 24. Sudden silence.\nRadio: 4-day humanitarian pause.\nPeople outside for first time in weeks.\nDo you go check your home in the north?',
+    choices: [
+      {
+        textAr: 'أذهب لأرى بيتي', textEn: 'Go check my home',
+        consequences: { food: +3, water: +2, money: +200, medicine: +1,
+          messageAr: 'وصلت. نصفه مدمر. وجدت طعاماً ومالاً مخبأً.',
+          messageEn: 'Reached home. Half destroyed. Found hidden food and money.' }
+      },
+      {
+        textAr: 'أبقى — الهدنة مؤقتة', textEn: 'Stay — truce is temporary',
+        consequences: { food: +1, water: +1, morale: +5,
+          messageAr: 'في 1 ديسمبر استُؤنف القصف فوراً.',
+          messageEn: 'On December 1 bombardment resumed immediately.' }
+      }
+    ],
+    realFactAr: 'الهدنة (24 نوف - 1 ديس 2023): مساعدات لـ120,000 شخص. إسرائيل منعت العودة الجماعية للشمال',
+    realFactEn: 'Nov 24 - Dec 1 truce: Aid to 120,000+. Israel prevented mass return to the north'
+  },
+  {
+    id: 'p2_displacement_road', phase: [2], locations: ['north','gaza'], triggerDay: 4, forced: false,
+    titleAr: 'طريق النزوح', titleEn: 'The Displacement Road',
+    storyAr: 'قررت النزوح جنوباً.\nمئات الآلاف يسيرون تحت الشمس.\nطفلك يبكي من العطش.',
+    storyEn: 'Heading south.\nHundreds of thousands walking under the sun.\nYour child crying from thirst.',
+    choices: [
+      {
+        textAr: 'الطريق الرئيسي (أسرع لكن مكشوف)', textEn: 'Main road (faster but exposed)',
+        consequences: { food: -3, water: -4, money: -50,
+          memberEffects: [{ target: 'children', health: -10 }], displacement: true, newLocation: 'central',
+          messageAr: 'وصلتم بعد 8 ساعات. الأطفال منهكون.',
+          messageEn: 'Arrived after 8 hours walking. Children exhausted.' }
+      },
+      {
+        textAr: 'انتظر وابحث عن سيارة', textEn: 'Wait and find a vehicle',
+        consequences: { food: -2, water: -2, money: -300, displacement: true, newLocation: 'central',
+          messageAr: 'دفعتم 300 دولار لسائق. وصلتم بأمان نسبي.',
+          messageEn: 'Paid $300 to a driver. Arrived relatively safely.' }
+      }
+    ],
+    realFactAr: 'وثّقت منظمات حقوقية إطلاق نار على طرق الإخلاء خلال هذه الفترة',
+    realFactEn: 'Human rights organizations documented fire on evacuation routes during this period'
+  },
+  {
+    id: 'p2_lost_everything', phase: [2], locations: 'all', triggerDay: 6, forced: true, noChoice: true,
+    titleAr: 'خسارة كل شيء', titleEn: 'Everything Lost',
+    storyAr: 'وصلتم لمكان النزوح.\nغرفة مع ثلاث عائلات أخرى.\nلا مطبخ. لا حمام خاص.\n\nكل ما جمعتموه — خلفتموه.',
+    storyEn: 'Arrived at displacement shelter.\nOne room with three other families.\nNo kitchen. No private bathroom.\n\nEverything you built — left behind.',
+    consequences: { food: -5, water: -3, money: -200, morale: -20,
+      memberEffects: [{ target: 'all', morale: -15 }],
+      messageAr: 'الأطفال لا يفهمون لماذا تركوا ألعابهم. الكبار يصمتون.',
+      messageEn: 'Children don\'t understand why they left their toys. Adults go silent.' },
+    realFactAr: 'كثافة المواصي (المنطقة الآمنة): 34,000 شخص/كم² مقابل 1,200 قبل الحرب',
+    realFactEn: 'Al-Mawasi density reached 34,000/sq km — vs 1,200 before the war'
+  },
+
+  // PHASE 3
+  {
+    id: 'p3_flour_price', phase: [3], locations: 'all', triggerDay: 2, forced: false,
+    titleAr: 'السوق السوداء', titleEn: 'The Black Market',
+    storyAr: 'شخص يبيع طحيناً.\nكيس 25 كيلو بـ400 دولار.\nقبل الحرب: 7 دولارات.',
+    storyEn: 'Someone selling flour.\n25kg bag for $400.\nBefore the war: $7.',
+    choices: [
+      {
+        textAr: 'اشترِ بأي ثمن', textEn: 'Buy at any price',
+        consequences: { food: +5, money: -400,
+          messageAr: 'اشتريت. المدخرات تنفد. يكفي أسبوعين.',
+          messageEn: 'Bought. Savings dwindling. Lasts two weeks.' }
+      },
+      {
+        textAr: 'سننتظر المساعدات', textEn: 'Wait for aid',
+        consequences: { memberEffects: [{ target: 'all', hunger: +15 }],
+          messageAr: 'المساعدات لم تصل. الجوع يشتد.',
+          messageEn: 'Aid didn\'t come. Hunger intensifies.' }
+      }
+    ],
+    realFactAr: 'مارس 2024: الطحين في شمال غزة 410$/كيس — في رفح 19$ فقط',
+    realFactEn: 'March 2024: Flour in North Gaza $410/bag — in Rafah only $19'
+  },
+  {
+    id: 'p3_aid_queue', phase: [3], locations: 'all', triggerDay: 5, forced: false,
+    titleAr: 'طابور المساعدات', titleEn: 'The Aid Queue',
+    storyAr: 'توزيع مساعدات قرب شارع الرشيد.\nالطابور يمتد لكيلومترات.\nالطيران الحربي يحلق فوق المنطقة.',
+    storyEn: 'Aid distribution near Al-Rashid Street.\nQueue stretches for kilometers.\nMilitary aircraft circling overhead.',
+    choices: [
+      {
+        textAr: 'اذهب — الأسرة جائعة', textEn: 'Join queue — family starving',
+        consequences: { food: +4, water: +2,
+          memberEffects: [{ target: 'self', health: -20 }],
+          messageAr: 'حصلت على المساعدات. انتظرت 5 ساعات تحت الخطر.',
+          messageEn: 'Got aid. Waited 5 hours under threat.' }
+      },
+      {
+        textAr: 'خطير جداً', textEn: 'Too dangerous',
+        consequences: { memberEffects: [{ target: 'all', hunger: +20 }],
+          messageAr: 'بقيت آمناً. الجوع يشتد. الأطفال يبكون.',
+          messageEn: 'Stayed safe. Hunger intensifies. Children crying.' }
+      }
+    ],
+    realFactAr: '29 فبراير 2024 — مجزرة الطحين: 112 قتيلاً و750 جريحاً في شارع الرشيد',
+    realFactEn: 'Feb 29, 2024 — Flour Massacre: 112 killed, 750 wounded at Al-Rashid Street'
+  },
+  {
+    id: 'p3_child_hunger', phase: [3], locations: 'all', triggerDay: 8, forced: true,
+    titleAr: 'الطفل جائع', titleEn: 'The Child Is Hungry',
+    storyAr: 'طفلك لم يأكل منذ يومين.\n"بابا/ماما... أنا جوعان"\n\nعندك آخر كمية طعام.',
+    storyEn: 'Your child hasn\'t eaten in two days.\n"Baba/Mama... I\'m hungry"\n\nYou have the last portion of food.',
+    choices: [
+      {
+        textAr: 'كل الطعام للأطفال', textEn: 'All food to the children',
+        consequences: { food: -3,
+          memberEffects: [{ target: 'children', hunger: -30, health: +5 }, { target: 'adults', hunger: +10 }],
+          messageAr: 'الأطفال ناموا. أنت لم تأكل شيئاً.',
+          messageEn: 'Children slept. You ate nothing.' }
+      },
+      {
+        textAr: 'اقسم على الجميع', textEn: 'Divide equally',
+        consequences: { food: -3, memberEffects: [{ target: 'all', hunger: -15 }],
+          messageAr: 'لا يكفي لأحد. لكنكم تشاركتم.',
+          messageEn: 'Not enough for anyone. But you shared.' }
+      }
+    ],
+    realFactAr: 'فبراير-مارس 2024: سوء التغذية عند الأطفال دون عامين ارتفع من 15.6% إلى 31% في 6 أسابيع',
+    realFactEn: 'Feb-March 2024: Child malnutrition (under 2) jumped from 15.6% to 31% in 6 weeks'
+  },
+  {
+    id: 'p3_contaminated_water', phase: [3], locations: 'all', triggerDay: 10, forced: true, noChoice: true,
+    titleAr: 'مياه ملوثة', titleEn: 'Contaminated Water',
+    storyAr: 'أحد أفراد الأسرة يعاني إسهالاً شديداً.\nمحطات الصرف متوقفة.\nالمياه الجوفية ملوثة.',
+    storyEn: 'A family member has severe diarrhea.\nSewage stations down.\nGroundwater contaminated.',
+    consequences: { water: -3, medicine: -1,
+      memberEffects: [{ target: 'random', health: -20 }],
+      messageAr: 'قبل الحرب: 2000 حالة إسهال/شهر. الآن: 44,000 حالة/شهر.',
+      messageEn: 'Before war: 2,000 diarrhea cases/month. Now: 44,000/month.' },
+    realFactAr: 'نوف 2023 - فبر 2024: 312,693 حالة التهاب تنفسي، 222,620 حالة إسهال في الملاجئ',
+    realFactEn: 'Nov 2023 - Feb 2024: 312,693 respiratory infections, 222,620 diarrhea cases in shelters'
+  },
+  {
+    id: 'p3_share_neighbor', phase: [3], locations: 'all', triggerDay: 12, forced: false,
+    titleAr: 'الجيران يطرقون الباب', titleEn: 'Neighbors at the Door',
+    storyAr: 'طرق أبو سامر بابك. وجهه شاحب.\n"أولادي لم يأكلوا منذ 3 أيام. عندك أي شيء؟"',
+    storyEn: 'Abu Samer knocked. Face pale.\n"My children haven\'t eaten in 3 days. Do you have anything?"',
+    choices: [
+      {
+        textAr: 'أعطه مما عندك', textEn: 'Share what you have',
+        consequences: { food: -2, water: -1, morale: +15, memberEffects: [{ target: 'all', morale: +10 }],
+          messageAr: 'أطفاله أكلوا. عيناه كانتا تقولان ما لا تقوله الكلمات.',
+          messageEn: 'His children ate. His eyes said what words cannot.' }
+      },
+      {
+        textAr: 'لا — بالكاد يكفينا', textEn: 'No — barely enough for us',
+        consequences: { morale: -20, memberEffects: [{ target: 'all', morale: -10 }],
+          messageAr: 'أغلقت الباب. أطفالك رأوا. لن ينسوا.',
+          messageEn: 'Closed the door. Your children saw. They won\'t forget.' }
+      }
+    ]
+  },
+
+  // PHASE 4
+  {
+    id: 'p4_rafah_invasion', phase: [4], locations: 'all', triggerDay: 1, forced: true,
+    titleAr: 'اجتياح رفح', titleEn: 'Rafah Invasion',
+    storyAr: '6 مايو 2024. منشورات من الطيران:\n"سكان شرق رفح يُخلوا فوراً نحو المواصي وخانيونس."\n\nأنت في رفح. كنت تظن نفسك في مأمن.\n1.4 مليون شخص يواجهون نفس الأمر.',
+    storyEn: 'May 6, 2024. Leaflets from aircraft:\n"Eastern Rafah must evacuate immediately to Al-Mawasi and Khan Yunis."\n\nYou\'re in Rafah. You thought you were safe.\n1.4 million face the same order.',
+    choices: [
+      {
+        textAr: 'أُخلي فوراً', textEn: 'Evacuate immediately',
+        consequences: { food: -3, water: -2, money: -150, displacement: true, newLocation: 'khanyunis',
+          messageAr: 'المواصي مكتظة. خيمة واحدة لكل أسرة. 34,000 شخص/كم².',
+          messageEn: 'Al-Mawasi impossibly crowded. One tent per family. 34,000/sq km.' }
+      },
+      {
+        textAr: 'أبقى — الغرب لا يزال آمناً', textEn: 'Stay — west is still safe',
+        consequences: { dangerIncrease: 5,
+          messageAr: 'بقيت. الدبابات تتقدم. القصف يقترب.',
+          messageEn: 'Stayed. Tanks advancing. Strikes getting closer.' }
+      }
+    ],
+    realFactAr: '26 مايو 2024: تل السلطان قُصف — أُعلن آمناً قبل أسبوع. 45 قتيلاً معظمهم نساء وأطفال',
+    realFactEn: 'May 26, 2024: Tel al-Sultan bombed — declared safe one week earlier. 45 killed'
+  },
+  {
+    id: 'p4_wck_strike', phase: [4], locations: 'all', triggerDay: 3, forced: true, noChoice: true,
+    titleAr: 'اغتيال عمال الإغاثة', titleEn: 'Aid Workers Killed',
+    storyAr: '1 أبريل 2024.\nقُتل 7 من عمال "مطبخ العالم المركزي" في قصف قافلتهم.\nالقافلة منسّقة مسبقاً. السيارات مُعلَّمة.\n\nالمنظمة علّقت عملياتها. الوجبات توقفت.',
+    storyEn: 'April 1, 2024.\n7 World Central Kitchen workers killed in strike.\nConvoy was pre-coordinated. Vehicles clearly marked.\n\nOrganization suspended operations. Meals stopped.',
+    consequences: { food: -4, morale: -15,
+      messageAr: 'المساعدات الغذائية انقطعت. لا مطبخ. لا توزيع.',
+      messageEn: 'Food aid cut off. No charity kitchen. No distribution.' },
+    realFactAr: 'أبريل 2024: مقتل 7 من WCK — أستراليون، بولنديون، بريطانيون وأمريكي-كندي وفلسطيني',
+    realFactEn: 'April 2024: 7 WCK workers killed — Australians, Poles, British, US-Canadian, Palestinian'
+  },
+  {
+    id: 'p4_rafah_crossing_closed', phase: [4], locations: 'all', triggerDay: 5, forced: true, noChoice: true,
+    titleAr: 'إغلاق معبر رفح', titleEn: 'Rafah Crossing Closed',
+    storyAr: '7 مايو 2024.\nالجيش يسيطر على معبر رفح.\nالمعبر الوحيد للعالم الخارجي أُغلق.\n\nشاحنات المساعدات تنتظر على الجانب المصري.',
+    storyEn: 'May 7, 2024.\nMilitary seizes Rafah crossing.\nOnly gateway to outside world — closed.\n\nAid trucks waiting on Egyptian side.',
+    consequences: { food: -5, medicine: -2, memberEffects: [{ target: 'all', hunger: +20 }],
+      messageAr: 'متوسط الشاحنات اليومية: 6 فقط. قبل الحرب: 500.',
+      messageEn: 'Daily trucks: 6 only. Before the war: 500.' },
+    realFactAr: 'أغسطس 2024: 69 شاحنة/يوم. 83% من المساعدات المطلوبة محجوبة (NRC)',
+    realFactEn: 'August 2024: 69 trucks/day. 83% of required food aid blocked (NRC)'
+  },
+
+  // PHASE 5
+  {
+    id: 'p5_mawasi_bombed', phase: [5], locations: 'all', triggerDay: 2, forced: false,
+    titleAr: 'قصف المنطقة "الآمنة"', titleEn: '"Safe Zone" Bombed',
+    storyAr: '13 يوليو 2024.\nأنت في المواصي — المنطقة التي أمرك الجيش بالذهاب إليها.\n8 قنابل أمريكية زنة 2000 رطل تضرب المخيم.\n\nلا تحذير.',
+    storyEn: 'July 13, 2024.\nYou\'re in Al-Mawasi — where the military told you to go.\n8 US-made 2,000 lb bombs hit the camp.\n\nNo warning.',
+    choices: [
+      {
+        textAr: 'اركض لمنطقة أخرى', textEn: 'Run to another area',
+        consequences: { food: -2, water: -2, money: -50,
+          memberEffects: [{ target: 'random', health: -25 }],
+          messageAr: 'ركضتم. أُصيب بعضكم. لا مكان آمن آخر.',
+          messageEn: 'Ran. Some hit by shrapnel. No other safe place.' }
+      },
+      {
+        textAr: 'استلقِ على الأرض', textEn: 'Lie flat',
+        consequences: { memberEffects: [{ target: 'random', health: -30 }],
+          messageAr: 'انفجار ضخم. شظايا في كل مكان.',
+          messageEn: 'Massive explosion. Shrapnel everywhere.' }
+      }
+    ],
+    realFactAr: '13 يوليو 2024: المواصي قُصفت بـ8 قنابل أمريكية. 90 قتيلاً و300+ جريح في المنطقة "الآمنة"',
+    realFactEn: 'July 13, 2024: Al-Mawasi hit with 8 US bombs. 90 killed, 300+ wounded in the "safe zone"'
+  },
+  {
+    id: 'p5_return_attempt', phase: [5], locations: 'all', triggerDay: 4, forced: false,
+    titleAr: 'محاولة العودة', titleEn: 'Attempt to Return',
+    storyAr: 'سمعت أن بعضهم يحاول العودة للشمال.\nقيل إن حيّك أصبح آمناً نسبياً.',
+    storyEn: 'Heard people trying to return north.\nYour neighborhood said to be relatively safe now.',
+    choices: [
+      {
+        textAr: 'حاوِل العودة', textEn: 'Try to return',
+        consequences: { food: -1, water: -1, money: -100,
+          memberEffects: [{ target: 'self', health: -15 }],
+          messageAr: 'الجنود أطلقوا النار عند الحاجز. عدت أدراجك.',
+          messageEn: 'Soldiers fired at checkpoint. You turned back.' }
+      },
+      {
+        textAr: 'لا — لا يزال خطراً', textEn: 'No — still dangerous',
+        consequences: { morale: -10,
+          messageAr: 'بقيت. قرار مؤلم. لكنك آمن.',
+          messageEn: 'Stayed. Painful decision. But you\'re safe.' }
+      }
+    ],
+    realFactAr: '14 أبريل 2024: جنود أطلقوا النار على حشود تحاول العودة للشمال. قُتلت فتاة صغيرة',
+    realFactEn: 'April 14, 2024: Soldiers fired on crowds trying to return north. A young girl was killed'
+  },
+
+  // PHASE 6
+  {
+    id: 'p6_deir_balah_evac', phase: [6], locations: 'all', triggerDay: 2, forced: true,
+    titleAr: 'إخلاء آخر منطقة آمنة', titleEn: 'Last Safe Area Evacuated',
+    storyAr: 'أغسطس 2024. أمر إخلاء لدير البلح.\nآخر منطقة إنسانية عاملة.\nكل المنظمات الـ24 تغادر قسراً.',
+    storyEn: 'August 2024. Evacuation order for Deir al-Balah.\nLast functioning humanitarian zone.\nAll 24 NGOs forced out.',
+    choices: [
+      {
+        textAr: 'تحرك نحو المواصي مجدداً', textEn: 'Move to Al-Mawasi again',
+        consequences: { food: -4, water: -3, money: -100, medicine: -1, displacement: true,
+          messageAr: 'النزوح الثالث. خيمة ممزقة. كل شيء من الصفر.',
+          messageEn: 'Third displacement. Torn tent. Everything from scratch.' }
+      },
+      {
+        textAr: 'ابقَ وتحمّل الخطر', textEn: 'Stay and bear the risk',
+        consequences: { dangerIncrease: 4,
+          messageAr: 'بقيت. القصف يتصاعد. المساعدات انقطعت.',
+          messageEn: 'Stayed. Bombing escalating. Aid cut off.' }
+      }
+    ],
+    realFactAr: 'أغسطس 2024: 5 أوامر إخلاء في 10 أيام. المعدل: أمر كل يومين',
+    realFactEn: 'August 2024: 5 evacuation orders in 10 days. Average: one order every 2 days'
+  },
+  {
+    id: 'p6_polio', phase: [6], locations: 'all', triggerDay: 5, forced: true, noChoice: true,
+    titleAr: 'شلل الأطفال يعود', titleEn: 'Polio Returns',
+    storyAr: 'يوليو 2024. إعلان رسمي:\nشلل الأطفال عاد لغزة.\nأول حالة منذ 25 عاماً.\nطفل عمره 10 أشهر أُصيب بشلل دائم.',
+    storyEn: 'July 2024. Official announcement:\nPolio returned to Gaza.\nFirst case in 25 years.\nA 10-month-old permanently paralyzed.',
+    consequences: { memberEffects: [{ target: 'children', health: -10 }],
+      messageAr: 'حملة طارئة: 559,161 طفل لُقِّحوا خلال هدنة 4 أيام.',
+      messageEn: 'Emergency campaign: 559,161 children vaccinated in a 4-day humanitarian pause.' },
+    realFactAr: 'يوليو-أغسطس 2024: شلل الأطفال + 40,000 حالة التهاب كبد وبائي مقابل 85 حالة العام السابق',
+    realFactEn: 'July-August 2024: Polio + 40,000 Hepatitis A cases vs. 85 cases the previous year'
+  },
+  {
+    id: 'p6_north_siege', phase: [6], locations: ['north','gaza'], triggerDay: 8, forced: true, noChoice: true,
+    titleAr: 'الحصار المزدوج', titleEn: 'Double Siege',
+    storyAr: 'أكتوبر 2024. لمن بقي في الشمال:\nالدبابات من الشرق. البحر من الغرب.\nلا مخرج.\n\nطعام: صفر. ماء: صفر. دواء: صفر.',
+    storyEn: 'October 2024. For those still in the north:\nTanks from east. Sea from west.\nNo way out.\n\nFood: zero. Water: zero. Medicine: zero.',
+    consequences: { food: -8, water: -8, medicine: -3,
+      memberEffects: [{ target: 'all', health: -15, hunger: +30 }],
+      messageAr: 'الأمم المتحدة: "مجاعة متعمدة". الطحين: 1000 دولار/كيس.',
+      messageEn: 'UN: "Deliberate starvation." Flour: $1,000 per bag.' },
+    realFactAr: 'أكتوبر 2024: أمر إخلاء شمال غزة طال 300,000-400,000 شخص',
+    realFactEn: 'October 2024: North Gaza evacuation order affected 300,000-400,000 people'
+  },
+
+  // PHASE 7
+  {
+    id: 'p7_nuseirat_school', phase: [7], locations: 'all', triggerDay: 3, forced: false,
+    titleAr: 'قصف مدرسة النصيرات', titleEn: 'Nuseirat School Strike',
+    storyAr: 'سبتمبر 2024. مدرسة أونروا في النصيرات.\nتؤوي 12,000 نازح — معظمهم نساء وأطفال.\nغارتان متتاليتان.\n6 موظفين أمميين بين القتلى.',
+    storyEn: 'September 2024. UNRWA school in Nuseirat.\nSheltering 12,000 displaced — mostly women and children.\nTwo consecutive strikes.\n6 UN staff among the dead.',
+    choices: [
+      {
+        textAr: 'غادر الملجأ فوراً', textEn: 'Leave shelter immediately',
+        consequences: { food: -2, water: -2, money: -100,
+          memberEffects: [{ target: 'self', health: -10 }],
+          messageAr: 'غادرت. لا ملجأ آخر. نمت في الشارع.',
+          messageEn: 'Left. No other shelter. Slept in the street.' }
+      },
+      {
+        textAr: 'ابقَ — الشارع أخطر', textEn: 'Stay — street is more dangerous',
+        consequences: { memberEffects: [{ target: 'random', health: -35 }],
+          messageAr: 'ضربت الغارة. شظايا في كل مكان.',
+          messageEn: 'Strike hit. Shrapnel everywhere.' }
+      }
+    ],
+    realFactAr: 'سبتمبر 2024: 34 قتيلاً منهم 6 موظفين أمميين — أعلى حصيلة لأونروا في حادثة واحدة',
+    realFactEn: 'September 2024: 34 killed including 6 UN staff — highest single-incident UNRWA staff toll'
+  },
+  {
+    id: 'p7_starvation', phase: [7], locations: 'all', triggerDay: 6, forced: true, noChoice: true,
+    titleAr: 'الموت البطيء', titleEn: 'The Slow Death',
+    storyAr: 'أسبوع دون طعام كافٍ.\nجسم أحد أفراد الأسرة يضعف.\nالأطباء: "سوء التغذية الحاد الوخيم".\n\nلا دواء. لا مصل. لا مستشفى.',
+    storyEn: 'A week without adequate food.\nA family member\'s body failing.\nDoctors: "Severe Acute Malnutrition".\n\nNo medicine. No IV. No hospital.',
+    consequences: { food: -3, medicine: -2,
+      memberEffects: [{ target: 'weakest', health: -25, hunger: +20 }],
+      messageAr: 'الجسم يأكل نفسه. هذا ما تعنيه المجاعة.',
+      messageEn: 'The body eats itself. This is what famine means.' },
+    realFactAr: 'يونيو 2024: WHO توقف عن إحصاء وفيات المجاعة. الأرقام الحقيقية أعلى بـ10 أضعاف',
+    realFactEn: 'June 2024: WHO stopped counting famine deaths. Real numbers 10x higher than confirmed'
+  },
+  {
+    id: 'p7_tent_strike', phase: [7], locations: 'all', triggerDay: 9, forced: true, noChoice: true,
+    titleAr: 'الخيام تحترق', titleEn: 'Tents on Fire',
+    storyAr: '4 ديسمبر 2024.\nضربة على مخيم خيام في المواصي.\n21 خيمة احترقت.\nفي المنطقة الإنسانية المُعلنة.',
+    storyEn: 'December 4, 2024.\nStrike on tent camp in Al-Mawasi.\n21 tents burned.\nIn the declared humanitarian zone.',
+    consequences: { food: -5, water: -3, medicine: -2,
+      memberEffects: [{ target: 'random', health: -30 }],
+      messageAr: 'في أسبوعين: 7 ضربات على مخيمات خيام — 34 قتيلاً منهم 10 أطفال.',
+      messageEn: 'Two weeks: 7 strikes on tent camps — 34 killed including 10 children.' },
+    realFactAr: 'ديسمبر 2024: 40-50 شاحنة/يوم فقط — أدنى مستوى في الحرب كلها',
+    realFactEn: 'December 2024: Only 40-50 trucks/day — lowest level of the entire war'
+  },
+
+  // PHASE 8
+  {
+    id: 'p8_ceasefire', phase: [8], locations: 'all', triggerDay: 1, forced: true,
+    titleAr: 'الهدنة', titleEn: 'The Ceasefire',
+    storyAr: '19 يناير 2025.\nالساعة 8:30 صباحاً.\n\nصمت.\n\nللمرة الأولى منذ 469 يوماً.\n\nصمت حقيقي.',
+    storyEn: 'January 19, 2025.\n8:30 AM.\n\nSilence.\n\nFor the first time in 469 days.\n\nReal silence.',
+    choices: [
+      {
+        textAr: 'العودة للشمال', textEn: 'Return to the north',
+        consequences: { food: +3, water: +3, medicine: +2, money: +200,
+          messageAr: 'سلكت الطريق مع 376,000 نازح. ما وجدوه: ركام.',
+          messageEn: 'You walked with 376,000 displaced. What they found: rubble.' }
+      },
+      {
+        textAr: 'أبقى — لا شيء هناك', textEn: 'Stay — nothing to return to',
+        consequences: { food: +2, water: +2, medicine: +2, morale: -10,
+          messageAr: 'المساعدات تتدفق: 600 شاحنة/يوم. لكن البيت لم يعد موجوداً.',
+          messageEn: 'Aid finally flowing: 600 trucks/day. But the home no longer exists.' }
+      }
+    ],
+    realFactAr: 'يناير 2025: في 42 يوماً وصل 88 مليون رطل غذاء لـ1.3 مليون شخص',
+    realFactEn: 'January 2025: In 42 days, 88 million lbs of food reached 1.3 million people'
+  },
+  {
+    id: 'p8_rubble', phase: [8], locations: 'all', triggerDay: 3, forced: true, noChoice: true,
+    titleAr: 'العودة إلى لا شيء', titleEn: 'Returning to Nothing',
+    storyAr: 'وصلت لحيّك.\n\nالبيت... غير موجود.\nالشارع... غير موجود.\nالمسجد... غير موجود.\nالمدرسة... غير موجودة.\n\nكل شيء ركام.',
+    storyEn: 'You reached your neighborhood.\n\nThe house... gone.\nThe street... gone.\nThe mosque... gone.\nThe school... gone.\n\nEverything is rubble.',
+    consequences: { morale: -30, memberEffects: [{ target: 'all', morale: -25 }],
+      messageAr: 'لكنك حي. ومن نجا من أسرتك حي. وهذا ما لم يضمنه أحد.',
+      messageEn: 'But you\'re alive. And your surviving family is alive. Which nobody guaranteed.' },
+    realFactAr: 'سبتمبر 2024: 66% من مباني غزة تضررت — خسائر 18.5 مليار دولار = 97% من الناتج المحلي',
+    realFactEn: 'September 2024: 66% of buildings damaged — $18.5B in damage = 97% of combined GDP'
+  }
+];
+
+const MICRO_EVENTS = [
+  { id: 'micro_phone', phase: 'all', textAr: 'بطارية هاتفك تنفد. لا كهرباء.', textEn: 'Phone battery dying. No power.', effect: { morale: -5 } },
+  { id: 'micro_news', phase: 'all', textAr: 'الأخبار: العالم يتابع حياته. "يناقشون" الوضع.', textEn: 'News: The world moves on. They\'re "discussing" the situation.', effect: { morale: -10 } },
+  { id: 'micro_child', phase: 'all', textAr: '"بابا/ماما... امتى نرجع البيت؟"', textEn: '"Baba/Mama... when do we go back home?"', effect: { morale: -8 } },
+  { id: 'micro_water', phase: 'all', textAr: 'وجدت خزاناً فيه ماء صالح للشرب.', textEn: 'Found a tank with drinkable water.', effect: { water: +2 } },
+  { id: 'micro_neighbor_died', phase: [3,6,7], textAr: 'توفي أبو إبراهيم — جار عمرك — الليلة. من الجوع.', textEn: 'Abu Ibrahim — your lifelong neighbor — died tonight. From hunger.', effect: { morale: -15 } },
+  { id: 'micro_airdrop', phase: [4,5,6], textAr: 'إسقاط جوي للمساعدات. 90% سقطت في البحر.', textEn: 'Airdrop. 90% fell in the sea.', effect: { food: +1, morale: -5 } },
+  { id: 'micro_medicine', phase: 'all', textAr: 'جار أعطاك نصف علبة مضادات حيوية.', textEn: 'A neighbor gave you half a box of antibiotics.', effect: { medicine: +1, morale: +5 } },
+  { id: 'micro_flour_stolen', phase: [6,7], textAr: 'سُرق كيس الطحين الذي اشتريته بمدخرات أسبوع.', textEn: 'The flour bag you bought with a week\'s savings was stolen.', effect: { food: -4, morale: -20 } },
+  { id: 'micro_prayer', phase: 'all', textAr: 'صليتم معاً في الخيمة. لحظة هدوء.', textEn: 'You prayed together in the tent. A moment of calm.', effect: { morale: +8 } },
+  { id: 'micro_smoke', phase: [1,2,6,7], textAr: 'دخان كثيف في الأفق. حريق قريب.', textEn: 'Dense smoke on the horizon. Fire nearby.', effect: { morale: -5 } }
+];
+
+if (typeof module !== 'undefined') {
+  module.exports = { GAME_PHASES, GAME_EVENTS, MICRO_EVENTS };
 }
