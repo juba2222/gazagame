@@ -236,18 +236,18 @@ canvas {
   border-color: rgba(192, 57, 43, 0.8);
 }
 
-/* =================== EVENT OVERLAY =================== */
+/* =================== EVENT OVERLAY — bottom panel, canvas always visible =================== */
 #event-overlay {
   position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.82);
+  bottom: 0; left: 0; right: 0;
+  height: 54vh;
+  background: rgba(6, 6, 10, 0.93);
+  border-top: 1px solid rgba(232,224,208,0.14);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
   z-index: 50;
-  padding: 20px;
+  overflow: hidden;
+  backdrop-filter: blur(3px);
 }
 
 #event-overlay.hidden { display: none; }
@@ -638,183 +638,269 @@ canvas {
   border-color: rgba(200,168,122,0.7);
 }
 
-/* =================== MONTHLY GAME SCREEN =================== */
-#event-overlay {
-  overflow-y: auto;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 60px 20px 120px;
-}
+/* =================== MONTHLY GAME SCREEN — single screen layout =================== */
 
-.month-game-screen {
-  max-width: 640px;
-  width: 100%;
-  margin: 0 auto;
+/* Top strip inside bottom panel: month name + quick stats */
+.panel-top-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(10,10,16,0.7);
+  border-bottom: 1px solid rgba(232,224,208,0.1);
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
-
-.challenge-card {
-  background: rgba(20,15,10,0.95);
-  border: 1px solid rgba(232,224,208,0.15);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 16px;
-}
-.challenge-title {
-  font-size: 1.1rem;
+.panel-month-name {
+  font-size: 0.82rem;
   color: #c8a87a;
   font-weight: 700;
-  margin-bottom: 10px;
+  white-space: nowrap;
+}
+.panel-stat {
+  font-size: 0.75rem;
+  color: #7a7060;
+  white-space: nowrap;
+}
+.panel-stat span { color: #e8e0d0; font-weight: 700; }
+.panel-stat.danger span { color: #c0392b; }
+.panel-stat.warn span { color: #c77a1a; }
+.panel-stat.bombs span { color: #8a3030; }
+.panel-separator { color: rgba(232,224,208,0.2); font-size: 0.7rem; }
+
+/* Alerts row: deaths, bombing hits, bankruptcy */
+.panel-alerts {
+  display: flex;
+  gap: 8px;
+  padding: 4px 14px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.alert-death {
+  font-size: 0.75rem;
+  color: #c0a0a0;
+  background: rgba(80,20,20,0.5);
+  border: 1px solid rgba(192,57,43,0.3);
+  border-radius: 3px;
+  padding: 2px 8px;
+}
+.alert-bomb {
+  font-size: 0.75rem;
+  color: #8a5050;
+  background: rgba(60,20,20,0.4);
+  border: 1px solid rgba(138,48,48,0.3);
+  border-radius: 3px;
+  padding: 2px 8px;
+}
+.alert-bankrupt {
+  font-size: 0.75rem;
+  color: #c0392b;
+  font-weight: 700;
+  padding: 2px 8px;
+  border: 1px solid rgba(192,57,43,0.5);
+  border-radius: 3px;
+}
+
+/* Horizontal scrolling cards row */
+.challenges-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  align-items: flex-start;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200,168,122,0.3) transparent;
+}
+.challenges-row::-webkit-scrollbar { height: 4px; }
+.challenges-row::-webkit-scrollbar-thumb { background: rgba(200,168,122,0.3); border-radius: 2px; }
+.challenges-row.no-challenges {
+  align-items: center;
+  justify-content: center;
+  color: #5a5040;
+  font-size: 0.82rem;
+}
+
+/* Single challenge card */
+.challenge-card {
+  background: rgba(14,12,10,0.97);
+  border: 1px solid rgba(232,224,208,0.13);
+  border-radius: 6px;
+  padding: 12px 14px;
+  min-width: 240px;
+  max-width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  max-height: calc(54vh - 110px);
+  scrollbar-width: none;
+}
+.challenge-card::-webkit-scrollbar { display: none; }
+
+.challenge-title {
+  font-size: 0.88rem;
+  color: #c8a87a;
+  font-weight: 700;
+  margin-bottom: 6px;
+  line-height: 1.3;
 }
 .challenge-story {
-  font-size: 0.88rem;
-  color: #b0a090;
+  font-size: 0.76rem;
+  color: #907a68;
   white-space: pre-line;
-  margin-bottom: 14px;
-  line-height: 1.7;
+  margin-bottom: 10px;
+  line-height: 1.55;
+  flex-shrink: 0;
 }
 .challenge-choices {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  margin-bottom: 8px;
+  gap: 5px;
+  margin-bottom: 6px;
 }
 .choice-cost {
   display: block;
-  font-size: 0.75rem;
-  color: #9a7060;
-  margin-top: 2px;
+  font-size: 0.68rem;
+  color: #8a6050;
+  margin-top: 1px;
 }
 .real-fact {
-  font-size: 0.72rem;
-  color: #7a8060;
-  border-top: 1px solid rgba(232,224,208,0.08);
-  padding-top: 10px;
-  margin-top: 12px;
-  line-height: 1.5;
+  font-size: 0.65rem;
+  color: #5a6040;
+  border-top: 1px solid rgba(232,224,208,0.07);
+  padding-top: 6px;
+  margin-top: 6px;
+  line-height: 1.45;
 }
 .choice-message {
-  font-size: 0.82rem;
-  color: #9a9080;
-  margin-top: 10px;
-  padding: 8px 12px;
+  font-size: 0.72rem;
+  color: #8a8070;
+  margin-top: 7px;
+  padding: 5px 8px;
   background: rgba(255,255,255,0.03);
   border-left: 2px solid #c8a87a;
   border-radius: 2px;
   white-space: pre-line;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 [dir="rtl"] .choice-message {
   border-left: none;
   border-right: 2px solid #c8a87a;
 }
 
-.month-header {
-  font-size: 1.2rem;
-  color: #e8e0d0;
-  font-weight: 700;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(232,224,208,0.12);
-}
-.month-summary {
-  background: rgba(15,15,20,0.8);
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  border: 1px solid rgba(232,224,208,0.06);
-}
-.summary-row {
-  font-size: 0.88rem;
-  padding: 2px 0;
-  color: #9a9080;
-}
-.summary-row.positive { color: #6a9060; }
-.summary-row.negative { color: #a06060; }
-
-.death-notice {
-  background: rgba(80,20,20,0.5);
-  border: 1px solid rgba(192,57,43,0.3);
-  border-radius: 4px;
-  padding: 8px 14px;
-  margin-bottom: 12px;
-  font-size: 0.88rem;
-  color: #c0a0a0;
-}
-
-.btn-next-month {
-  display: block;
+/* choice buttons inside cards */
+.choice-btn {
+  background: rgba(232,224,208,0.05);
+  border: 1px solid rgba(232,224,208,0.14);
+  color: #c8c0b0;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-family: 'Cairo', 'IBM Plex Mono', monospace;
+  cursor: pointer;
+  border-radius: 3px;
+  text-align: start;
+  transition: all 0.15s;
+  line-height: 1.35;
   width: 100%;
-  padding: 14px;
-  margin-top: 20px;
+}
+.choice-btn:hover {
+  background: rgba(232,224,208,0.12);
+  border-color: rgba(232,224,208,0.28);
+  color: #e8e0d0;
+}
+.choice-btn.selected {
+  border-color: #c8a87a;
   background: rgba(200,168,122,0.12);
-  border: 1px solid rgba(200,168,122,0.35);
+  color: #e8d8b8;
+}
+
+/* Month summary as compact pill row */
+.month-summary {
+  display: none; /* replaced by panel-top-bar */
+}
+.month-header { display: none; }
+.death-notice { display: none; }
+
+/* Next month button — fixed at bottom of overlay */
+.btn-next-month {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 9px 14px;
+  background: rgba(200,168,122,0.1);
+  border: none;
+  border-top: 1px solid rgba(200,168,122,0.25);
   color: #c8a87a;
   font-family: 'Cairo', monospace;
-  font-size: 1rem;
+  font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s;
+  transition: all 0.18s;
+  letter-spacing: 0.04em;
 }
 .btn-next-month:hover:not(:disabled) {
-  background: rgba(200,168,122,0.24);
-  border-color: rgba(200,168,122,0.6);
+  background: rgba(200,168,122,0.2);
 }
 .btn-next-month:disabled {
-  opacity: 0.35;
+  opacity: 0.28;
   cursor: not-allowed;
 }
 
-/* =================== FINANCIAL PANEL (HUD) =================== */
+/* =================== FINANCIAL PANEL (HUD) — floats over canvas =================== */
 .financial-panel {
-  background: rgba(10,10,15,0.92);
-  border: 1px solid rgba(232,224,208,0.12);
-  padding: 10px 14px;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  min-width: 180px;
+  background: rgba(8,8,12,0.82);
+  border: 1px solid rgba(232,224,208,0.1);
+  border-radius: 4px;
+  padding: 7px 11px;
+  font-size: 0.72rem;
+  min-width: 155px;
+  max-width: 185px;
+  backdrop-filter: blur(2px);
 }
 .financial-row {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  padding: 2px 0;
+  gap: 8px;
+  padding: 1px 0;
 }
-.financial-label { color: #7a7060; }
-.financial-value { color: #e8e0d0; font-weight: bold; }
+.financial-label { color: #5a5040; }
+.financial-value { color: #d0c8b8; font-weight: bold; }
 .val-danger { color: #c0392b !important; }
 .val-warn { color: #c77a1a !important; }
 
-/* =================== FAMILY PANEL (HUD) =================== */
+/* =================== FAMILY PANEL (HUD) — floats over canvas =================== */
 .family-panel {
-  background: rgba(10,10,15,0.92);
-  border: 1px solid rgba(232,224,208,0.12);
-  padding: 10px 14px;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  min-width: 150px;
+  background: rgba(8,8,12,0.82);
+  border: 1px solid rgba(232,224,208,0.1);
+  border-radius: 4px;
+  padding: 7px 11px;
+  font-size: 0.72rem;
+  min-width: 130px;
+  max-width: 165px;
+  backdrop-filter: blur(2px);
 }
 .member-row {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 3px 0;
+  gap: 6px;
+  padding: 2px 0;
 }
-.member-row.member-dead { opacity: 0.4; }
+.member-row.member-dead { opacity: 0.35; }
 .member-name {
-  color: #b0a090;
+  color: #9a8878;
   flex: 1;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 90px;
+  max-width: 80px;
 }
-.member-dead .member-name { text-decoration: line-through; color: #555; }
+.member-dead .member-name { text-decoration: line-through; color: #444; }
 .health-bar {
-  width: 45px;
-  height: 4px;
-  background: rgba(232,224,208,0.12);
+  width: 38px;
+  height: 3px;
+  background: rgba(232,224,208,0.1);
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -872,14 +958,35 @@ canvas {
 
 /* =================== RESPONSIVE =================== */
 @media (max-width: 600px) {
-  .event-panel { padding: 20px 18px; }
+  /* Bottom panel takes a bit more on mobile */
+  #event-overlay { height: 58vh; }
+
   .family-member-row {
     grid-template-columns: 1fr 50px 1fr auto;
     gap: 5px;
   }
-  .hud-resources { font-size: 0.68rem; padding: 7px 10px; }
-  .hud-phase { font-size: 0.7rem; }
-  .family-card { min-width: 66px; padding: 5px 7px; }
+
+  /* Cards go vertical on narrow screens */
+  .challenges-row {
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    align-items: stretch;
+  }
+  .challenge-card {
+    min-width: unset;
+    max-width: 100%;
+    max-height: none;
+  }
+
+  /* HUD panels smaller on mobile */
+  #hud-resources { right: 6px !important; top: 6px !important; }
+  #hud-family { left: 6px !important; top: 6px !important; }
+  .financial-panel, .family-panel { font-size: 0.66rem; padding: 5px 8px; min-width: 110px; }
+
+  .panel-top-bar { padding: 5px 10px; gap: 7px; }
+  .panel-month-name { font-size: 0.76rem; }
+  .panel-stat { font-size: 0.68rem; }
 }
 
 /* RTL support */
