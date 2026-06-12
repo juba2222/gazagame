@@ -427,54 +427,66 @@ class GameScene extends Phaser.Scene {
       if (c.recurring) this.pendingChallengeIds.add(c.id);
     });
 
-    // Build HTML
-    let html = `<div class="month-game-screen" dir="${isAr ? 'rtl' : 'ltr'}">`;
+    // ── TOP BAR ──────────────────────────────────────────────
+    const savingsClass = snap.savings < 300 ? 'danger' : snap.savings < 800 ? 'warn' : '';
+    const tons = Math.round(this.cumulativeExplosivesTons / 1000);
+    const salarySign = snap.salary > 0 ? `+$${summary.earned.toLocaleString()}` : (isAr ? 'بلا راتب' : 'no salary');
+    const burdenSign = summary.burden > 0 ? `-$${summary.burden.toLocaleString()}` : '';
 
-    // Month header
-    html += `<div class="month-header">${monthName} — ${isAr ? 'الشهر ' + this.currentMonth + ' من 36' : 'Month ' + this.currentMonth + ' of 36'}</div>`;
-
-    // Month financial summary
-    const burdenPaid = summary.paid ? summary.burden : 0;
-    html += `<div class="month-summary">`;
-    if (snap.salary > 0) {
-      html += `<div class="summary-row positive">+ $${summary.earned.toLocaleString()} ${LANG.t('salary_received')}</div>`;
-    }
-    if (summary.burden > 0) {
-      html += `<div class="summary-row negative">- $${summary.burden.toLocaleString()} ${LANG.t('costs_deducted')}</div>`;
-    }
-    html += `<div class="summary-row">= $${snap.savings.toLocaleString()} ${isAr ? 'مدخرات متبقية' : 'remaining savings'}</div>`;
+    let html = `<div class="panel-top-bar" dir="${isAr ? 'rtl' : 'ltr'}">`;
+    html += `<span class="panel-month-name">${monthName} <span style="color:#5a5040;font-weight:400">${isAr ? this.currentMonth + '/36' : this.currentMonth + '/36'}</span></span>`;
+    html += `<span class="panel-separator">|</span>`;
+    html += `<span class="panel-stat ${savingsClass}">${isAr ? 'مدخرات' : 'Saved'} <span>$${snap.savings.toLocaleString()}</span></span>`;
     if (snap.debt > 0) {
-      html += `<div class="summary-row negative">${isAr ? 'ديون' : 'Debt'}: $${snap.debt.toLocaleString()} / $${snap.debtLimit.toLocaleString()}</div>`;
+      html += `<span class="panel-separator">·</span><span class="panel-stat warn">${isAr ? 'دين' : 'Debt'} <span>$${snap.debt.toLocaleString()}</span></span>`;
     }
-    if (isBankrupt) {
-      html += `<div class="summary-row negative" style="font-weight:bold;">⚠ ${LANG.t('bankrupt_warning')}</div>`;
+    if (summary.earned > 0 || summary.burden > 0) {
+      html += `<span class="panel-separator">·</span><span class="panel-stat positive">${salarySign}`;
+      if (burdenSign) html += ` <span style="color:#a06060">${burdenSign}</span>`;
+      html += `</span>`;
+    }
+    if (tons > 0) {
+      html += `<span class="panel-separator">|</span><span class="panel-stat bombs">💥 <span>${tons}k ${isAr ? 'طن' : 't'}</span></span>`;
     }
     html += `</div>`;
 
-    // Auto deaths narrative
-    if (autoDeaths && autoDeaths.length > 0) {
-      autoDeaths.forEach(m => {
-        html += `<div class="death-notice">✕ ${m.name} — ${isAr ? 'استشهد' : 'martyred'}</div>`;
-      });
+    // ── ALERTS ROW (deaths / bombing / bankruptcy) ────────────
+    const hasAlerts = (autoDeaths && autoDeaths.length > 0) || (bombResult && bombResult.hit) || isBankrupt;
+    if (hasAlerts) {
+      html += `<div class="panel-alerts" dir="${isAr ? 'rtl' : 'ltr'}">`;
+      if (autoDeaths && autoDeaths.length > 0) {
+        autoDeaths.forEach(m => {
+          html += `<span class="alert-death">✕ ${m.name}</span>`;
+        });
+      }
+      if (bombResult && bombResult.hit) {
+        const bombMsg = bombResult.severity === 'death'
+          ? (isAr ? '💥 قصف — وفاة' : '💥 Strike — death')
+          : bombResult.severity === 'injury'
+          ? (isAr ? '💥 قصف — بتر' : '💥 Strike — amputation')
+          : (isAr ? '💥 قصف — جروح' : '💥 Strike — wounds');
+        html += `<span class="alert-bomb">${bombMsg}</span>`;
+      }
+      if (isBankrupt) {
+        html += `<span class="alert-bankrupt">⚠ ${isAr ? 'إفلاس' : 'Bankrupt'}</span>`;
+      }
+      html += `</div>`;
     }
 
-    // Bombing notice
-    if (this.cumulativeExplosivesTons > 0) {
-      html += `<div class="bombing-notice">💥 ${isAr ? 'إسقاط تراكمي: ' + Math.round(this.cumulativeExplosivesTons/1000) + ' ألف طن من المتفجرات' : 'Cumulative: ' + Math.round(this.cumulativeExplosivesTons/1000) + 'K tons of explosives dropped'}</div>`;
-    }
-
-    // Challenge cards
+    // ── CHALLENGE CARDS ROW ───────────────────────────────────
+    html += `<div class="challenges-row${allChallenges.length === 0 ? ' no-challenges' : ''}" dir="${isAr ? 'rtl' : 'ltr'}">`;
     if (allChallenges.length > 0) {
       allChallenges.forEach(challenge => {
         html += this.buildChallengeCard(challenge, isAr);
       });
+    } else {
+      html += `<span>${isAr ? 'لا تحديات هذا الشهر' : 'No challenges this month'}</span>`;
     }
-
-    // Next month button (shown after choices made, or if no challenges)
-    const nextLabel = LANG.t('next_month');
-    html += `<button class="btn-next-month" id="btn-next-month" ${allChallenges.length > 0 ? 'disabled' : ''}>${nextLabel}</button>`;
-
     html += `</div>`;
+
+    // ── NEXT MONTH BUTTON ─────────────────────────────────────
+    const nextLabel = LANG.t('next_month');
+    html += `<button class="btn-next-month" id="btn-next-month" ${allChallenges.length > 0 ? 'disabled' : ''}>${nextLabel} ▶</button>`;
 
     overlay.innerHTML = html;
 
