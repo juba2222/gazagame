@@ -739,6 +739,14 @@ canvas {
 }
 .challenge-card::-webkit-scrollbar { display: none; }
 
+.challenge-theme {
+  font-size: 0.62rem;
+  color: #6a5a40;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-family: 'IBM Plex Mono', monospace;
+  margin-bottom: 4px;
+}
 .challenge-title {
   font-size: 0.88rem;
   color: #c8a87a;
@@ -908,6 +916,58 @@ canvas {
   height: 100%;
   border-radius: 2px;
   transition: width 0.4s;
+}
+
+/* =================== DEATH LAST WORDS =================== */
+.death-last-words {
+  font-size: 0.95rem;
+  color: #9a8878;
+  font-style: italic;
+  text-align: center;
+  max-width: 380px;
+  line-height: 1.8;
+  margin: 0 auto 24px;
+  padding: 14px 20px;
+  border-top: 1px solid #1a1a1a;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+/* =================== END SCENE EMOTIONAL =================== */
+.end-names-block {
+  max-width: 380px;
+  width: 100%;
+  margin: 20px auto 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.end-name-line {
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+.end-name-line.alive { color: #7a9870; }
+.end-name-line.dead  { color: #5a4040; text-decoration: line-through; }
+.end-closing {
+  font-size: 0.95rem;
+  color: #7a6a58;
+  text-align: center;
+  max-width: 420px;
+  line-height: 1.9;
+  margin: 0 auto 24px;
+  font-style: italic;
+}
+.end-real-fact {
+  font-size: 0.72rem;
+  color: #4a4040;
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto 32px;
+  font-family: 'IBM Plex Mono', monospace;
+  line-height: 1.8;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 16px;
 }
 
 /* =================== DEATH OVERLAY MARTYRS =================== */

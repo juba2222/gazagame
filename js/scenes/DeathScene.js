@@ -1,5 +1,29 @@
 // DeathScene.js - Death notification with real martyr references
 
+// Last words by relation and context
+const LAST_WORDS = {
+  ar: {
+    child:   ['كان آخر ما قاله: "بابا، متى نرجع البيت؟"', 'آخر ما رسمه كان بيت صغير وشمس.', 'قال لك البارحة إنه يحبك.'],
+    spouse:  ['آخر ما همست: "خلّيك قوي عشان الأولاد."', 'نظرت إليك وابتسمت وكأنها تعرف.', 'قالت: "أنا بخير" — ولم تكن.'],
+    parent:  ['قال لك: "ما عليك، أنا عشت حياتي."', 'آخر ما طلبه كان أن تأخذ العائلة وتبتعد.', 'كانت يداه دافئة حين ودّعته.'],
+    sibling: ['قال: "أنا ما خايف" — كذب عليك لتطمئن.', 'آخر ضحكة كانت على شيء غبي وبسيط.', 'طلب منك أن لا تبكي.'],
+    self:    ['بقيت وحدك.', 'الصمت الذي تركوه لا يُملأ.'],
+  },
+  en: {
+    child:   ['Last thing they said: "When are we going home?"', 'The last thing they drew was a small house with a sun.', 'They told you they loved you yesterday.'],
+    spouse:  ['Last thing she whispered: "Stay strong for the kids."', 'She looked at you and smiled like she knew.', 'She said "I\'m fine" — she wasn\'t.'],
+    parent:  ['He said: "Don\'t worry, I\'ve lived my life."', 'His last request was for you to take the family and go.', 'His hands were warm when you said goodbye.'],
+    sibling: ['He said "I\'m not scared" — he lied so you wouldn\'t worry.', 'The last laugh was over something small and stupid.', 'He asked you not to cry.'],
+    self:    ['You were left alone.', 'The silence they left cannot be filled.'],
+  }
+};
+
+function getLastWords(relation, isAr) {
+  const lang = isAr ? 'ar' : 'en';
+  const pool = LAST_WORDS[lang][relation] || LAST_WORDS[lang].sibling;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 const REAL_MARTYRS = {
   injury: [
     { nameAr: 'إسماعيل الغول', age: 27, descAr: 'صحفي أقنال استُشهد في غارة مباشرة على سيارته المُعلَّمة', ageGroup: [20, 35] },
@@ -90,15 +114,15 @@ class DeathScene extends Phaser.Scene {
     }
 
     const statText = this.getStatForCause(m.causeOfDeath, isAr);
+    const lastWords = getLastWords(m.relation || 'sibling', isAr);
 
     overlay.innerHTML = `
       <div class="death-name">${m.name}</div>
-      <div class="death-info">${m.age} ${isAr ? 'سنة' : 'years old'}</div>
-      <div class="death-info">${causeTxt}</div>
-      ${m.injured ? `<div class="death-info" style="color:#8a4040;">${isAr ? 'أُصيب بجراح قبل الاستشهاد' : 'Was injured before martyrdom'}</div>` : ''}
+      <div class="death-info" style="margin-bottom:18px;">${m.age} ${isAr ? 'سنة' : 'years old'} · ${causeTxt}</div>
+      <div class="death-last-words">${lastWords}</div>
       ${martyrHtml}
       <div class="death-stat">${statText}</div>
-      <div style="margin-top:28px;">
+      <div style="margin-top:32px;">
         <button class="btn-continue" id="death-continue-btn">${LANG.t('death_continue')}</button>
       </div>
     `;

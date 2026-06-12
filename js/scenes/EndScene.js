@@ -95,33 +95,41 @@ class EndScene extends Phaser.Scene {
       `;
     }
 
+    // Closing sentence based on outcome
+    const closingSentence = allDied
+      ? (isAr ? 'لم يتبقَّ أحد يحكي.' : 'No one was left to tell the story.')
+      : this.emigrated
+      ? (isAr ? 'غادرتَ. الوطن بقي.' : 'You left. The homeland stayed.')
+      : allSurvived
+      ? (isAr ? 'نجوتم — لكن جزءاً منكم بقي هناك.' : 'You survived — but part of you stayed there.')
+      : (isAr ? 'بعضهم رحل. بعضهم بقي. الفقد لا يُحسب.' : 'Some left. Some stayed. Loss cannot be counted.');
+
+    // Build names list — the emotional core
+    let namesHtml = '';
+    for (const m of this.familyMembers) {
+      if (m.status === 'dead') {
+        const month = m.monthOfDeath ? ` · ${isAr ? 'شهر' : 'mo.'} ${m.monthOfDeath}` : '';
+        namesHtml += `<div class="end-name-line dead">✕ ${m.name}${month}</div>`;
+      } else {
+        const injuredNote = m.injured ? (isAr ? ' · مُصاب' : ' · injured') : '';
+        namesHtml += `<div class="end-name-line alive">✓ ${m.name}${injuredNote}</div>`;
+      }
+    }
+
     overlay.innerHTML = `
       <div class="end-title">${titleText}</div>
       <div class="end-days">${monthsText}</div>
-      <div style="color:#7a6060;font-size:0.9rem;text-align:center;margin-bottom:20px;max-width:500px;white-space:pre-line;">${outcomeText}</div>
 
-      ${financialHtml}
-
-      <div class="end-section" style="max-width:560px;width:100%">
-        <div class="end-section-title">${LANG.t('end_survived')}</div>
-        ${survivedHtml}
+      <div class="end-names-block">
+        ${namesHtml}
       </div>
 
-      <div class="end-section" style="max-width:560px;width:100%">
-        <div class="end-section-title">${LANG.t('end_lost')}</div>
-        ${deadHtml}
-      </div>
+      <div class="end-closing">${closingSentence}</div>
 
-      <div class="end-section" style="max-width:560px;width:100%;border-color:rgba(232,224,208,0.07)">
-        <div class="end-section-title">${LANG.t('end_stat_header')}</div>
-        <div class="end-stats">
-          <div>${LANG.t('end_stat1')}</div>
-          <div>${LANG.t('end_stat2')}</div>
-          <div>${LANG.t('end_stat3')}</div>
-          <div>${LANG.t('end_stat4')}</div>
-          <div>${LANG.t('end_stat5')}</div>
-          <div style="margin-top:8px;color:#6a8a6a;">${LANG.t('end_ceasefire')}</div>
-        </div>
+      <div class="end-real-fact">
+        ${isAr
+          ? 'في غزة الحقيقية: أكثر من 55,000 شهيد · 90% نازحون · مجاعة متعمدة · الحرب لم تنتهِ لكثيرين'
+          : 'In real Gaza: 55,000+ martyred · 90% displaced · deliberate famine · for many, the war never ended'}
       </div>
 
       <div class="end-actions">

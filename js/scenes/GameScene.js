@@ -507,28 +507,18 @@ class GameScene extends Phaser.Scene {
     const title = isAr ? challenge.titleAr : challenge.titleEn;
     const story = isAr ? challenge.storyAr : challenge.storyEn;
     const realFact = isAr ? challenge.realFactAr : challenge.realFactEn;
+    const theme = challenge.emotionalTheme || '';
 
     let choicesHtml = '<div class="challenge-choices">';
     challenge.choices.forEach((choice, i) => {
       const text = isAr ? choice.textAr : choice.textEn;
-      let costLabel = '';
-      if (choice.oneTimeCost && choice.oneTimeCost < 0) {
-        costLabel = ` (+$${Math.abs(choice.oneTimeCost).toLocaleString()})`;
-      } else if (choice.oneTimeCost > 0) {
-        costLabel = ` (-$${choice.oneTimeCost.toLocaleString()})`;
-      }
-      if (choice.monthlyCost > 0) {
-        costLabel += ` + $${choice.monthlyCost.toLocaleString()}/${isAr ? 'شهر' : 'mo'}`;
-      }
-      if (choice.deathRisk > 0) {
-        costLabel += ` ⚠ ${Math.round(choice.deathRisk * 100)}%${isAr ? ' خطر' : ' risk'}`;
-      }
-      choicesHtml += `<button class="choice-btn" data-challenge="${challenge.id}" data-choice="${i}">${text}${costLabel ? '<span class="choice-cost">' + costLabel + '</span>' : ''}</button>`;
+      choicesHtml += `<button class="choice-btn" data-challenge="${challenge.id}" data-choice="${i}">${text}</button>`;
     });
     choicesHtml += '</div>';
 
     return `
       <div class="challenge-card" id="card-${challenge.id}">
+        ${theme ? `<div class="challenge-theme">${theme}</div>` : ''}
         <div class="challenge-title">${title}</div>
         <div class="challenge-story">${story}</div>
         ${choicesHtml}
