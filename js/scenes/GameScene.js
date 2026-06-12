@@ -17,6 +17,18 @@ class GameScene extends Phaser.Scene {
     this.fgGraphics = null;
     this.smokeParticles = [];
     this.fireParticles = [];
+
+    this.cumulativeExplosivesTons = 0;
+    this.bombingMonthlyBase = [
+      0, // padding index 0
+      // Month 1-36: bombing intensity in tons/month (total = ~150,000 tons over 36 months)
+      3000, 4000, 5000, 5500, 6000, 6000,   // months 1-6
+      5500, 5000, 5500, 6000, 6000, 6000,   // months 7-12
+      5500, 5000, 4500, 5000, 5500, 5000,   // months 13-18
+      4000, 4500, 5000, 5000, 4500, 4000,   // months 19-24
+      3500, 3000, 3000, 3500, 3000, 2500,   // months 25-30
+      2000, 1500, 1000, 500, 200, 100,      // months 31-36 (ceasefire)
+    ];
   }
 
   init(data) {
@@ -231,8 +243,18 @@ class GameScene extends Phaser.Scene {
       return;
     }
 
-    // 5. Show month UI
-    this.showMonthScreen(summary, isBankrupt, deaths);
+    // 5. Monthly bombing probability
+    let autoDeaths = deaths;
+    const bombResult = this.rollMonthlyBombing();
+    if (bombResult.hit) {
+      autoDeaths = [...(autoDeaths || []), ...(bombResult.deaths || [])];
+    }
+    // Add this month's explosives to counter
+    const tonsThisMonth = this.bombingMonthlyBase[this.currentMonth] || 0;
+    this.cumulativeExplosivesTons += tonsThisMonth;
+
+    // 6. Show month UI
+    this.showMonthScreen(summary, isBankrupt, autoDeaths, bombResult);
   }
 
   applyAutoEvents(month) {
@@ -331,13 +353,48 @@ class GameScene extends Phaser.Scene {
     }
   }
 
+  rollMonthlyBombing() {
+    const month = this.currentMonth;
+    // Base probability 5% month 1, up to 30% month 24, then decreasing toward ceasefire
+    const basePct = Math.min(0.30, 0.05 + (month - 1) * 0.011);
+    // Location modifier: north and gaza are more dangerous
+    const loc = FamilyManager.getLocation();
+    const locBonus = (loc === 'north' || loc === 'gaza') ? 0.07 : (loc === 'central') ? 0.04 : 0.02;
+    // Job modifier: medic/doctor working = higher risk
+    const jobRisk = (ResourceManager.workActive && ResourceManager.workRiskLevel === 'veryhigh') ? 0.05 : 0;
+
+    const chance = Math.min(0.45, basePct + locBonus + jobRisk);
+
+    if (Math.random() > chance) return { hit: false };
+
+    // Bombing hit — determine severity
+    const rand = Math.random();
+    const deaths = [];
+
+    if (rand < 0.20) {
+      // Death
+      const died = FamilyManager.applyEffect('random', { health: -999, causeOfDeath: 'injury' }, month);
+      if (died) deaths.push(died);
+      return { hit: true, severity: 'death', deaths };
+    } else if (rand < 0.50) {
+      // Limb injury
+      FamilyManager.applyEffect('random', { injure: true, causeOfDeath: 'injury' }, month);
+      return { hit: true, severity: 'injury', deaths };
+    } else {
+      // Health damage only
+      const healthLoss = -20 - Math.floor(Math.random() * 20); // -20 to -40
+      FamilyManager.applyToAll({ health: healthLoss, causeOfDeath: 'injury' }, month);
+      return { hit: true, severity: 'damage', deaths };
+    }
+  }
+
   _scheduleRemoveBurden(burdenId, targetMonth) {
     // Store for later removal
     if (!this._pendingBurdenRemovals) this._pendingBurdenRemovals = [];
     this._pendingBurdenRemovals.push({ burdenId, targetMonth });
   }
 
-  showMonthScreen(summary, isBankrupt, autoDeaths) {
+  showMonthScreen(summary, isBankrupt, autoDeaths, bombResult) {
     const overlay = document.getElementById('event-overlay');
     if (!overlay) return;
     overlay.classList.remove('hidden');
@@ -399,6 +456,11 @@ class GameScene extends Phaser.Scene {
       autoDeaths.forEach(m => {
         html += `<div class="death-notice">✕ ${m.name} — ${isAr ? 'استشهد' : 'martyred'}</div>`;
       });
+    }
+
+    // Bombing notice
+    if (this.cumulativeExplosivesTons > 0) {
+      html += `<div class="bombing-notice">💥 ${isAr ? 'إسقاط تراكمي: ' + Math.round(this.cumulativeExplosivesTons/1000) + ' ألف طن من المتفجرات' : 'Cumulative: ' + Math.round(this.cumulativeExplosivesTons/1000) + 'K tons of explosives dropped'}</div>`;
     }
 
     // Challenge cards
@@ -598,10 +660,17 @@ class GameScene extends Phaser.Scene {
         this.emigrated = true;
       }
 
-      // Mark as resolved
-      this.resolvedChallengeIds.add(challenge.id);
-      if (this.pendingChallengeIds.has(challenge.id)) {
-        this.pendingChallengeIds.delete(challenge.id);
+      // Only mark as resolved if player chose a cost option (monthlyCost > 0)
+      // Free option = stays pending for next month (challenge repeats)
+      const isFreeCyclicChoice = choice && choice.monthlyCost === 0 && choice.oneTimeCost === 0 && challenge.recurring;
+      if (isFreeCyclicChoice) {
+        // Challenge will reappear next month — keep in pending
+        this.pendingChallengeIds.add(challenge.id);
+      } else {
+        this.resolvedChallengeIds.add(challenge.id);
+        if (this.pendingChallengeIds.has(challenge.id)) {
+          this.pendingChallengeIds.delete(challenge.id);
+        }
       }
     });
 
@@ -737,6 +806,10 @@ class GameScene extends Phaser.Scene {
         <div class="financial-row">
           <span class="financial-label">${LANG.t('work_hours')}:</span>
           <span class="financial-value">${snap.workHours}/8</span>
+        </div>
+        <div class="financial-row">
+          <span class="financial-label">${isAr ? 'متفجرات' : 'Explosives'}:</span>
+          <span class="financial-value val-danger">${Math.round(this.cumulativeExplosivesTons / 1000)}K ${isAr ? 'طن' : 'tons'}</span>
         </div>
       </div>
     `;

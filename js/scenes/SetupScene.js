@@ -1,9 +1,18 @@
 // SetupScene.js - Game setup with DOM overlay
 
+const JOB_TYPES = [
+  { id: 'government',  nameAr: 'موظف حكومي', nameEn: 'Government Employee', multiplier: 1.0,  riskLevel: 'low',      descAr: 'دخل ثابت، خطر متوسط',    descEn: 'Stable income, medium risk' },
+  { id: 'laborer',     nameAr: 'عامل يومي',  nameEn: 'Daily Laborer',       multiplier: 0.6,  riskLevel: 'medium',   descAr: 'دخل متغير، خطر أعلى',    descEn: 'Variable income, higher risk' },
+  { id: 'medic',       nameAr: 'طبيب/مسعف', nameEn: 'Doctor / Medic',      multiplier: 1.3,  riskLevel: 'veryhigh', descAr: 'دخل أعلى، خطر شديد جداً', descEn: 'Higher income, very high risk' },
+  { id: 'engineer',    nameAr: 'مهندس',      nameEn: 'Engineer',            multiplier: 1.2,  riskLevel: 'high',     descAr: 'دخل جيد، خطر عالٍ',      descEn: 'Good income, high risk' },
+  { id: 'unemployed',  nameAr: 'عاطل',       nameEn: 'Unemployed',          multiplier: 0.0,  riskLevel: 'none',     descAr: 'بلا دخل، خطر أقل',       descEn: 'No income, lower risk' },
+];
+
 class SetupScene extends Phaser.Scene {
   constructor() {
     super({ key: 'SetupScene' });
     this.memberCount = 0;
+    this.selectedJob = 'government';
   }
 
   create() {
@@ -158,6 +167,40 @@ class SetupScene extends Phaser.Scene {
     locGroup.appendChild(locSelect);
     form.appendChild(locGroup);
 
+    // Job type selector
+    const jobTypeGroup = document.createElement('div');
+    jobTypeGroup.className = 'form-group';
+    const jobTypeLabel = document.createElement('label');
+    jobTypeLabel.className = isAr ? 'form-label ar' : 'form-label';
+    jobTypeLabel.textContent = isAr ? 'نوع العمل' : 'Job Type';
+    jobTypeGroup.appendChild(jobTypeLabel);
+
+    const jobCards = document.createElement('div');
+    jobCards.className = 'job-cards';
+    jobCards.id = 'job-cards';
+
+    const defaultJob = (replayConfig && replayConfig.jobId) || this.selectedJob || 'government';
+    JOB_TYPES.forEach(jt => {
+      const card = document.createElement('div');
+      card.className = 'job-card' + (jt.id === defaultJob ? ' selected' : '');
+      card.dataset.job = jt.id;
+      const nameText = isAr ? jt.nameAr : jt.nameEn;
+      const descText = isAr ? jt.descAr : jt.descEn;
+      const multLabel = jt.multiplier === 0
+        ? (isAr ? 'بلا راتب' : 'No salary')
+        : 'x' + jt.multiplier + (isAr ? ' الراتب' : ' salary');
+      card.innerHTML = `<div class="job-card-name">${nameText}</div><div class="job-card-desc">${descText}</div><div class="job-card-mult">${multLabel}</div>`;
+      card.onclick = () => {
+        document.querySelectorAll('.job-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        this.selectedJob = jt.id;
+      };
+      jobCards.appendChild(card);
+    });
+
+    jobTypeGroup.appendChild(jobCards);
+    form.appendChild(jobTypeGroup);
+
     // Financial class selector
     const fcGroup = document.createElement('div');
     fcGroup.className = 'form-group';
@@ -296,11 +339,13 @@ class SetupScene extends Phaser.Scene {
     const jobEl = document.getElementById('player-job');
     const locEl = document.getElementById('player-location');
     const selectedFcCard = document.querySelector('.fc-card.selected');
+    const selectedJobCard = document.querySelector('.job-card.selected');
 
     const playerName = (nameEl && nameEl.value.trim()) || 'أبو كريم';
     const profession = (jobEl && jobEl.value.trim()) || '';
     const location = locEl ? locEl.value : 'gaza';
     const financialClass = selectedFcCard ? selectedFcCard.dataset.fc : 'middle';
+    const jobId = selectedJobCard ? selectedJobCard.dataset.job : (this.selectedJob || 'government');
 
     // Collect family members
     const memberRows = document.querySelectorAll('#family-members-list .family-member-row');
@@ -314,16 +359,22 @@ class SetupScene extends Phaser.Scene {
       }
     });
 
-    const config = { playerName, profession, location, financialClass, familyData };
+    const config = { playerName, profession, location, financialClass, familyData, jobId };
     this.startGameWithConfig(config);
   }
 
   startGameWithConfig(config) {
-    const { playerName, profession, location, financialClass, familyData } = config;
+    const { playerName, profession, location, financialClass, familyData, jobId } = config;
+
+    // Resolve job type
+    const jobType = JOB_TYPES.find(j => j.id === jobId) || JOB_TYPES[0];
+    const jobMultiplier = jobType.multiplier;
 
     // Init game systems
     FamilyManager.init(playerName || 'أبو كريم', location, financialClass, familyData || [], profession || '');
-    ResourceManager.init(financialClass);
+    FamilyManager.job = jobId || 'government';
+    ResourceManager.init(financialClass, jobMultiplier);
+    ResourceManager.workRiskLevel = jobType.riskLevel;
 
     // Hide overlay
     const overlay = document.getElementById('setup-overlay');

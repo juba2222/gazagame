@@ -889,3 +889,14 @@ canvas {
 [dir="rtl"] .btn-continue { align-self: flex-start; }
 [dir="rtl"] #hud-resources { right: auto !important; left: 10px !important; }
 [dir="rtl"] #hud-family { left: auto !important; right: 10px !important; }
+
+.bombing-notice { color: #8a3030; font-size: 0.78rem; margin: 6px 0; padding: 4px 0; border-top: 1px solid rgba(138,48,48,0.3); }
+.val-danger { color: #c0392b !important; }
+.val-warn { color: #c77a1a !important; }
+.job-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+.job-card { padding: 10px 12px; border: 1px solid rgba(232,224,208,0.15); border-radius: 6px; cursor: pointer; background: rgba(232,224,208,0.04); transition: border-color 0.2s; }
+.job-card:hover { border-color: rgba(232,224,208,0.35); }
+.job-card.selected { border-color: #c8a87a; background: rgba(200,168,122,0.12); }
+.job-card-name { font-size: 0.95rem; color: #c8a87a; margin-bottom: 3px; }
+.job-card-desc { font-size: 0.75rem; color: #7a7060; }
+.job-card-mult { font-size: 0.8rem; color: #9ab080; margin-top: 4px; }

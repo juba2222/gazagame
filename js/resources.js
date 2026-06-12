@@ -1,30 +1,10 @@
 // resources.js - Financial model for Gaza war simulation
 
 const FINANCIAL_CLASSES = {
-  poor: {
-    nameAr: 'فقير', nameEn: 'Poor',
-    salary: 400, savings: 1000, debtLimit: 500,
-    descAr: 'راتب $400/شهر · مدخرات $1,000',
-    descEn: '$400/mo salary · $1,000 savings',
-  },
-  middle: {
-    nameAr: 'متوسط', nameEn: 'Middle Class',
-    salary: 900, savings: 4000, debtLimit: 2500,
-    descAr: 'راتب $900/شهر · مدخرات $4,000',
-    descEn: '$900/mo salary · $4,000 savings',
-  },
-  comfortable: {
-    nameAr: 'ميسور', nameEn: 'Comfortable',
-    salary: 2200, savings: 18000, debtLimit: 7000,
-    descAr: 'راتب $2,200/شهر · مدخرات $18,000',
-    descEn: '$2,200/mo salary · $18,000 savings',
-  },
-  rich: {
-    nameAr: 'غني', nameEn: 'Wealthy',
-    salary: 5500, savings: 70000, debtLimit: 22000,
-    descAr: 'راتب $5,500/شهر · مدخرات $70,000',
-    descEn: '$5,500/mo salary · $70,000 savings',
-  },
+  poor:        { nameAr: 'فقير',  nameEn: 'Poor',         salary: 300,  savings: 0,     debtLimit: 100,   descAr: 'راتب $300/شهر · مدخرات $0',       descEn: '$300/mo · $0 savings' },
+  middle:      { nameAr: 'متوسط', nameEn: 'Middle Class', salary: 800,  savings: 1500,  debtLimit: 500,   descAr: 'راتب $800/شهر · مدخرات $1,500',    descEn: '$800/mo · $1,500 savings' },
+  comfortable: { nameAr: 'ميسور', nameEn: 'Comfortable',  salary: 2000, savings: 10000, debtLimit: 2000,  descAr: 'راتب $2,000/شهر · مدخرات $10,000', descEn: '$2,000/mo · $10,000 savings' },
+  rich:        { nameAr: 'غني',   nameEn: 'Wealthy',      salary: 5000, savings: 50000, debtLimit: 10000, descAr: 'راتب $5,000/شهر · مدخرات $50,000', descEn: '$5,000/mo · $50,000 savings' },
 };
 
 const ResourceManager = {
@@ -38,8 +18,10 @@ const ResourceManager = {
   salaryPenalty: 0,          // fraction (0.10 = 10% cut, accumulated)
   activeMonthlyBurdens: [],  // [{id, amount, labelAr, labelEn}]
   monthlyDeathHazard: 0,     // accumulated probability from working
+  jobMultiplier: 1.0,
+  workRiskLevel: 'low',
 
-  init(financialClass) {
+  init(financialClass, jobMultiplier) {
     const fc = FINANCIAL_CLASSES[financialClass] || FINANCIAL_CLASSES.middle;
     this.financialClass = financialClass;
     this.baseSalary = fc.salary;
@@ -51,11 +33,12 @@ const ResourceManager = {
     this.salaryPenalty = 0;
     this.activeMonthlyBurdens = [];
     this.monthlyDeathHazard = 0;
+    this.jobMultiplier = jobMultiplier || 1.0;
   },
 
   effectiveSalary() {
     if (!this.workActive) return 0;
-    return Math.round(this.baseSalary * (1 - this.salaryPenalty));
+    return Math.round(this.baseSalary * this.jobMultiplier * (1 - this.salaryPenalty));
   },
 
   totalMonthlyBurden() {
