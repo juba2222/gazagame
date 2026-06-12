@@ -595,6 +595,10 @@ const MICRO_EVENTS = [
   { id: 'micro_smoke', phase: [1,2,6,7], textAr: 'دخان كثيف في الأفق. حريق قريب.', textEn: 'Dense smoke on the horizon. Fire nearby.', effect: { morale: -5 } }
 ];
 
+// Backward-compatibility alias for GameScene.js
+const PHASES = GAME_PHASES;
+const EVENTS = GAME_EVENTS;
+
 if (typeof module !== 'undefined') {
-  module.exports = { GAME_PHASES, GAME_EVENTS, MICRO_EVENTS };
+  module.exports = { GAME_PHASES, GAME_EVENTS, MICRO_EVENTS, PHASES, EVENTS };
 }
