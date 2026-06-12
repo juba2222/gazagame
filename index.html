@@ -25,14 +25,11 @@
 
     <!-- ======== IN-GAME HUD (DOM overlay on top of canvas) ======== -->
     <div id="hud-overlay" class="hidden">
-      <!-- Phase info top-left -->
-      <div class="hud-phase" id="hud-phase"></div>
+      <!-- Financial panel top-right (populated by GameScene) -->
+      <div id="hud-resources" style="position:absolute;top:10px;right:10px;z-index:100;pointer-events:none;"></div>
 
-      <!-- Resources top-right -->
-      <div class="hud-resources" id="hud-resources"></div>
-
-      <!-- Family cards bottom -->
-      <div class="hud-family" id="hud-family"></div>
+      <!-- Family panel top-left (populated by GameScene) -->
+      <div id="hud-family" style="position:absolute;top:10px;left:10px;z-index:100;pointer-events:none;"></div>
     </div>
 
     <!-- ======== EVENT OVERLAY (shown during events) ======== -->
@@ -64,6 +61,7 @@
   <script src="js/i18n.js"></script>
   <script src="js/family.js"></script>
   <script src="js/resources.js"></script>
+  <script src="js/monthly_challenges.js"></script>
   <script src="js/events.js"></script>
 
   <!-- Phaser Scenes -->

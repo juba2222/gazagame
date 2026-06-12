@@ -34,6 +34,22 @@ class SetupScene extends Phaser.Scene {
 
     overlay.dir = isAr ? 'rtl' : 'ltr';
 
+    // Check for replay config
+    let replayConfig = null;
+    try {
+      const stored = localStorage.getItem('gazagame_replay_config');
+      if (stored) replayConfig = JSON.parse(stored);
+    } catch(e) {}
+
+    // Replay button at top
+    if (replayConfig) {
+      const replayBtn = document.createElement('button');
+      replayBtn.className = 'btn-replay';
+      replayBtn.textContent = LANG.t('replay_btn');
+      replayBtn.onclick = () => this.startGameWithConfig(replayConfig);
+      overlay.appendChild(replayBtn);
+    }
+
     // Title
     const title = document.createElement('div');
     title.className = 'setup-title';
@@ -94,9 +110,26 @@ class SetupScene extends Phaser.Scene {
     nameInput.id = 'player-name';
     nameInput.placeholder = LANG.t('your_name_placeholder');
     nameInput.type = 'text';
+    if (replayConfig) nameInput.value = replayConfig.playerName || '';
     nameGroup.appendChild(nameLabel);
     nameGroup.appendChild(nameInput);
     form.appendChild(nameGroup);
+
+    // Profession/Job
+    const jobGroup = document.createElement('div');
+    jobGroup.className = 'form-group';
+    const jobLabel = document.createElement('label');
+    jobLabel.className = isAr ? 'form-label ar' : 'form-label';
+    jobLabel.textContent = LANG.t('your_job');
+    const jobInput = document.createElement('input');
+    jobInput.className = 'form-input';
+    jobInput.id = 'player-job';
+    jobInput.placeholder = LANG.t('your_job_placeholder');
+    jobInput.type = 'text';
+    if (replayConfig) jobInput.value = replayConfig.profession || '';
+    jobGroup.appendChild(jobLabel);
+    jobGroup.appendChild(jobInput);
+    form.appendChild(jobGroup);
 
     // Location
     const locGroup = document.createElement('div');
@@ -118,35 +151,44 @@ class SetupScene extends Phaser.Scene {
       const opt = document.createElement('option');
       opt.value = loc.val;
       opt.textContent = LANG.t(loc.key);
+      if (replayConfig && replayConfig.location === loc.val) opt.selected = true;
       locSelect.appendChild(opt);
     });
     locGroup.appendChild(locLabel);
     locGroup.appendChild(locSelect);
     form.appendChild(locGroup);
 
-    // Living standard
-    const stdGroup = document.createElement('div');
-    stdGroup.className = 'form-group';
-    const stdLabel = document.createElement('label');
-    stdLabel.className = isAr ? 'form-label ar' : 'form-label';
-    stdLabel.textContent = LANG.t('living_standard');
-    const stdSelect = document.createElement('select');
-    stdSelect.className = 'form-select';
-    stdSelect.id = 'living-standard';
-    const standards = [
-      { val: 'poor', key: 'poor' },
-      { val: 'middle', key: 'middle' },
-      { val: 'welloff', key: 'welloff' },
-    ];
-    standards.forEach(std => {
-      const opt = document.createElement('option');
-      opt.value = std.val;
-      opt.textContent = LANG.t(std.key);
-      stdSelect.appendChild(opt);
+    // Financial class selector
+    const fcGroup = document.createElement('div');
+    fcGroup.className = 'form-group';
+    const fcLabel = document.createElement('label');
+    fcLabel.className = isAr ? 'form-label ar' : 'form-label';
+    fcLabel.textContent = LANG.t('financial_class');
+    fcGroup.appendChild(fcLabel);
+
+    const fcCards = document.createElement('div');
+    fcCards.className = 'fc-cards';
+    fcCards.id = 'fc-cards';
+
+    const defaultFc = (replayConfig && replayConfig.financialClass) || 'middle';
+    const fcList = ['poor', 'middle', 'comfortable', 'rich'];
+    fcList.forEach(fc => {
+      const info = FINANCIAL_CLASSES[fc];
+      const card = document.createElement('div');
+      card.className = 'fc-card' + (fc === defaultFc ? ' selected' : '');
+      card.dataset.fc = fc;
+      const nameText = isAr ? info.nameAr : info.nameEn;
+      const descText = isAr ? info.descAr : info.descEn;
+      card.innerHTML = `<div class="fc-name">${nameText}</div><div class="fc-desc">${descText}</div>`;
+      card.onclick = () => {
+        document.querySelectorAll('.fc-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+      };
+      fcCards.appendChild(card);
     });
-    stdGroup.appendChild(stdLabel);
-    stdGroup.appendChild(stdSelect);
-    form.appendChild(stdGroup);
+
+    fcGroup.appendChild(fcCards);
+    form.appendChild(fcGroup);
 
     // Divider
     const div1 = document.createElement('div');
@@ -190,12 +232,16 @@ class SetupScene extends Phaser.Scene {
 
     overlay.appendChild(form);
 
-    // Add one default family member row
+    // Pre-populate family from replay config or add a default row
     const list = document.getElementById('family-members-list');
-    this.addMemberRow(list);
+    if (replayConfig && replayConfig.familyData && replayConfig.familyData.length > 0) {
+      replayConfig.familyData.forEach(fd => this.addMemberRow(list, fd));
+    } else {
+      this.addMemberRow(list);
+    }
   }
 
-  addMemberRow(list) {
+  addMemberRow(list, prefill) {
     const isAr = LANG.current === 'ar';
     const row = document.createElement('div');
     row.className = 'family-member-row';
@@ -205,6 +251,7 @@ class SetupScene extends Phaser.Scene {
     nameInput.placeholder = LANG.t('member_name');
     nameInput.type = 'text';
     nameInput.dataset.field = 'name';
+    if (prefill && prefill.name) nameInput.value = prefill.name;
 
     const ageInput = document.createElement('input');
     ageInput.className = 'form-input';
@@ -213,6 +260,7 @@ class SetupScene extends Phaser.Scene {
     ageInput.min = 1;
     ageInput.max = 99;
     ageInput.dataset.field = 'age';
+    if (prefill && prefill.age) ageInput.value = prefill.age;
 
     const relSelect = document.createElement('select');
     relSelect.className = 'form-select';
@@ -227,6 +275,7 @@ class SetupScene extends Phaser.Scene {
       const opt = document.createElement('option');
       opt.value = r.val;
       opt.textContent = LANG.t(r.key);
+      if (prefill && prefill.relation === r.val) opt.selected = true;
       relSelect.appendChild(opt);
     });
 
@@ -244,12 +293,14 @@ class SetupScene extends Phaser.Scene {
 
   startGame() {
     const nameEl = document.getElementById('player-name');
+    const jobEl = document.getElementById('player-job');
     const locEl = document.getElementById('player-location');
-    const stdEl = document.getElementById('living-standard');
+    const selectedFcCard = document.querySelector('.fc-card.selected');
 
-    const playerName = nameEl ? nameEl.value.trim() : 'أبو كريم';
+    const playerName = (nameEl && nameEl.value.trim()) || 'أبو كريم';
+    const profession = (jobEl && jobEl.value.trim()) || '';
     const location = locEl ? locEl.value : 'gaza';
-    const livingStandard = stdEl ? stdEl.value : 'middle';
+    const financialClass = selectedFcCard ? selectedFcCard.dataset.fc : 'middle';
 
     // Collect family members
     const memberRows = document.querySelectorAll('#family-members-list .family-member-row');
@@ -263,15 +314,22 @@ class SetupScene extends Phaser.Scene {
       }
     });
 
+    const config = { playerName, profession, location, financialClass, familyData };
+    this.startGameWithConfig(config);
+  }
+
+  startGameWithConfig(config) {
+    const { playerName, profession, location, financialClass, familyData } = config;
+
     // Init game systems
-    FamilyManager.init(playerName || 'أبو كريم', location, livingStandard, familyData);
-    ResourceManager.init(livingStandard);
+    FamilyManager.init(playerName || 'أبو كريم', location, financialClass, familyData || [], profession || '');
+    ResourceManager.init(financialClass);
 
     // Hide overlay
     const overlay = document.getElementById('setup-overlay');
     if (overlay) overlay.classList.add('hidden');
 
     // Start game scene
-    this.scene.start('GameScene');
+    this.scene.start('GameScene', { initialConfig: config });
   }
 }

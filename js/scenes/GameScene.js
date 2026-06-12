@@ -1,29 +1,26 @@
-// GameScene.js - Main game loop with Phaser canvas + DOM HUD
+// GameScene.js - 36-month survival simulation
 
 class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
 
-    this.currentDay = 1;
-    this.currentPhaseIndex = 0;
-    this.dayWithinPhase = 0;
-    this.totalDays = 0;
-    this.recentEventIds = [];
-    this.pendingDeaths = [];
-    this.eventActive = false;
-    this.bgColors = [
-      0x0d1520, // phase 1 - dark blue
-      0x150d0d, // phase 2 - dark red
-      0x110d0d, // phase 3 - very dark
-      0x0d0d0d, // phase 4
-      0x0d1210, // phase 5 - slight hope green
-      0x120d0d, // phase 6
-      0x0a0a0a, // phase 7 - almost black
-      0x0d120f, // phase 8 - ceasefire
-    ];
+    this.currentMonth = 1;
+    this.resolvedChallengeIds = new Set();
+    this.pendingChallengeIds = new Set();
+    this.monthChoices = {};       // challengeId → choiceIndex
+    this.monthConsequences = [];  // queued consequence messages
+    this.emigrated = false;
+    this.gameOver = false;
+    this.initialConfig = null;
+    this.buildingData = null;
+    this.bgGraphics = null;
+    this.fgGraphics = null;
     this.smokeParticles = [];
     this.fireParticles = [];
-    this.buildingData = null;
+  }
+
+  init(data) {
+    this.initialConfig = (data && data.initialConfig) || null;
   }
 
   create() {
@@ -33,22 +30,28 @@ class GameScene extends Phaser.Scene {
 
     // Generate static building silhouettes
     this.buildingData = this.generateBuildings(width, height);
-
-    // Draw background layer (sky + buildings + ground)
     this.bgGraphics = this.add.graphics();
-    this.fgGraphics = this.add.graphics(); // for particles / effects
+    this.fgGraphics = this.add.graphics();
 
     this.drawBackground();
 
-    // Show HUD
+    // Show HUD panels
+    const hudOverlay = document.getElementById('hud-overlay');
+    if (hudOverlay) hudOverlay.classList.remove('hidden');
+
+    // Hide overlays from previous runs
+    ['event-overlay', 'death-overlay', 'end-overlay'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+
     this.updateHUD();
 
-    // Start first day
-    this.time.delayedCall(600, () => this.startDay());
+    // Start month 1 after brief pause
+    this.time.delayedCall(500, () => this.startMonth());
   }
 
   update(time, delta) {
-    // Animate smoke / fire
     this.updateParticles(delta);
     if (this.smokeParticles.length > 0 || this.fireParticles.length > 0) {
       this.drawParticles();
@@ -59,16 +62,17 @@ class GameScene extends Phaser.Scene {
 
   generateBuildings(width, height) {
     const buildings = [];
-    const horizonY = height * 0.62;
     let x = 0;
     while (x < width + 60) {
       const w = Phaser.Math.Between(30, 90);
       const h = Phaser.Math.Between(40, 160);
-      // Some buildings are partially destroyed (jagged top)
       const destroyed = Math.random() < 0.4;
-      buildings.push({ x, w, h, horizonY, destroyed,
+      buildings.push({
+        x, w, h,
+        destroyed,
         windowRows: Phaser.Math.Between(2, 5),
-        windowCols: Phaser.Math.Between(1, 3) });
+        windowCols: Phaser.Math.Between(1, 3),
+      });
       x += w + Phaser.Math.Between(2, 12);
     }
     return buildings;
@@ -77,84 +81,65 @@ class GameScene extends Phaser.Scene {
   drawBackground() {
     const g = this.bgGraphics;
     const { width, height } = this.scale;
-    const phase = PHASES[this.currentPhaseIndex];
-    const bgColor = this.bgColors[this.currentPhaseIndex] || 0x0a0a0f;
+    const horizonY = height * 0.64;
+
+    // Destruction ratio increases with month
+    const destroyRatio = Math.min(0.95, 0.4 + (this.currentMonth / 36) * 0.5);
+    const bgColor = this.currentMonth < 10 ? 0x0d1520
+      : this.currentMonth < 20 ? 0x150d0d
+      : this.currentMonth < 30 ? 0x0d0d0d
+      : 0x0d120f;
 
     g.clear();
-
-    // Sky gradient simulation (top band + lower band)
-    const skyTop = bgColor;
-    const skyMid = Phaser.Display.Color.Interpolate.ColorWithColor(
-      Phaser.Display.Color.IntegerToColor(bgColor),
-      Phaser.Display.Color.IntegerToColor(0x1a0a0a),
-      10, 5
-    );
-
-    // Sky
     g.fillStyle(bgColor, 1);
     g.fillRect(0, 0, width, height * 0.65);
-
-    // Slightly lighter ground
     g.fillStyle(0x080808, 1);
     g.fillRect(0, height * 0.65, width, height * 0.35);
-
-    // Ground line
     g.fillStyle(0x1a1008, 1);
-    g.fillRect(0, height * 0.64, width, 4);
+    g.fillRect(0, horizonY, width, 4);
 
-    // Moon / sun (pale in sky)
-    if (this.currentPhaseIndex < 2) {
+    // Moon
+    if (this.currentMonth < 10) {
       g.fillStyle(0x3a3020, 0.6);
       g.fillCircle(width * 0.8, height * 0.12, 18);
     }
 
     // Building silhouettes
-    const horizonY = height * 0.64;
     for (const b of this.buildingData) {
       const bx = b.x;
       const by = horizonY - b.h;
       const bw = b.w;
       const bh = b.h;
+      const isDestroyed = b.destroyed || (Math.random() < destroyRatio - 0.4);
 
       g.fillStyle(0x050508, 1);
 
-      if (b.destroyed) {
-        // Jagged / ruined building
+      if (isDestroyed) {
         g.fillRect(bx, by + bh * 0.3, bw * 0.6, bh * 0.7);
-        // Rubble pile
-        g.fillTriangle(
-          bx, horizonY,
-          bx + bw * 0.7, horizonY,
-          bx + bw * 0.35, by + bh * 0.28
-        );
-        // Broken wall fragment
+        g.fillTriangle(bx, horizonY, bx + bw * 0.7, horizonY, bx + bw * 0.35, by + bh * 0.28);
         g.fillRect(bx + bw * 0.65, by + bh * 0.55, bw * 0.35, bh * 0.45);
       } else {
         g.fillRect(bx, by, bw, bh);
-        // Dark windows
         g.fillStyle(0x0a0a12, 1);
         const winH = Math.floor(bh / (b.windowRows + 1));
         const winW = Math.floor(bw / (b.windowCols + 1));
         for (let r = 1; r <= b.windowRows; r++) {
           for (let c = 1; c <= b.windowCols; c++) {
-            const wx = bx + c * winW - 4;
-            const wy = by + r * winH - 3;
-            g.fillRect(wx, wy, 6, 6);
+            g.fillRect(bx + c * winW - 4, by + r * winH - 3, 6, 6);
           }
         }
       }
     }
 
-    // Distant smoke columns (phase-dependent)
-    const smokeCount = phase ? Math.floor(phase.dangerLevel[FamilyManager.getLocation()] / 2) : 2;
+    // Smoke columns (more per month)
+    const smokeCount = Math.min(6, 1 + Math.floor(this.currentMonth / 6));
     for (let i = 0; i < smokeCount; i++) {
-      const sx = (width * (i + 1)) / (smokeCount + 1) + Phaser.Math.Between(-30, 30);
-      this.drawSmokeColumn(g, sx, horizonY - 20, width, height);
+      const sx = (width * (i + 1)) / (smokeCount + 1) + Phaser.Math.Between(-20, 20);
+      this.drawSmokeColumn(g, sx, horizonY - 20);
     }
   }
 
-  drawSmokeColumn(g, x, baseY, width, height) {
-    // Simple upward smoke column using semi-transparent circles
+  drawSmokeColumn(g, x, baseY) {
     for (let i = 0; i < 8; i++) {
       const alpha = 0.06 - i * 0.006;
       const radius = 8 + i * 6;
@@ -168,7 +153,6 @@ class GameScene extends Phaser.Scene {
   drawParticles() {
     const g = this.fgGraphics;
     g.clear();
-
     const now = Date.now();
 
     for (const p of this.smokeParticles) {
@@ -178,7 +162,6 @@ class GameScene extends Phaser.Scene {
         g.fillCircle(p.x + Math.sin(age * 4) * 6, p.y - age * 40, p.r + age * 8);
       }
     }
-
     for (const p of this.fireParticles) {
       const age = (now - p.born) / p.life;
       if (age < 1) {
@@ -195,297 +178,485 @@ class GameScene extends Phaser.Scene {
     this.fireParticles = this.fireParticles.filter(p => now - p.born < p.life);
   }
 
-  triggerExplosionEffect(x, y) {
+  triggerExplosionEffect() {
+    const { width, height } = this.scale;
+    const x = Phaser.Math.Between(width * 0.2, width * 0.8);
+    const y = Phaser.Math.Between(height * 0.3, height * 0.6);
     const now = Date.now();
-    // Fire burst
     for (let i = 0; i < 6; i++) {
       this.fireParticles.push({
-        x: x + Phaser.Math.Between(-20, 20),
-        y: y + Phaser.Math.Between(-10, 10),
-        r: Phaser.Math.Between(12, 30),
-        born: now + i * 50,
-        life: 800 + i * 100,
+        x: x + Phaser.Math.Between(-20, 20), y: y + Phaser.Math.Between(-10, 10),
+        r: Phaser.Math.Between(12, 30), born: now + i * 50, life: 800 + i * 100,
       });
     }
-    // Smoke
     for (let i = 0; i < 8; i++) {
       this.smokeParticles.push({
-        x: x + Phaser.Math.Between(-15, 15),
-        y: y,
-        r: Phaser.Math.Between(8, 18),
-        born: now + i * 80,
-        life: 2000 + i * 200,
+        x: x + Phaser.Math.Between(-15, 15), y,
+        r: Phaser.Math.Between(8, 18), born: now + i * 80, life: 2000 + i * 200,
       });
     }
   }
 
-  // ====================== DAILY LOOP ======================
+  // ====================== MONTHLY LOOP ======================
 
-  startDay() {
-    if (this.eventActive) return;
+  startMonth() {
+    if (this.gameOver) return;
 
-    const phase = PHASES[this.currentPhaseIndex];
-    this.totalDays++;
-    this.dayWithinPhase++;
-
-    // Check phase transition
-    if (this.dayWithinPhase > phase.duration) {
-      this.advancePhase();
-      return;
-    }
-
-    // Pick and show event
-    const event = pickRandomEvent(phase.id, FamilyManager.getLocation(), this.recentEventIds);
-    if (event) {
-      this.recentEventIds.push(event.id);
-      if (this.recentEventIds.length > 6) this.recentEventIds.shift();
-    }
-
-    this.showEvent(event);
-  }
-
-  advancePhase() {
-    this.currentPhaseIndex++;
-    this.dayWithinPhase = 0;
-
-    if (this.currentPhaseIndex >= PHASES.length) {
-      // Game complete
-      this.endGame();
-      return;
-    }
-
-    // Redraw background for new phase
+    // Redraw background for current month (more destroyed over time)
     this.drawBackground();
-    this.updateHUD();
 
-    // Show phase transition message
-    this.showPhaseTransition(PHASES[this.currentPhaseIndex]);
-  }
+    // 1. Process finances
+    const summary = ResourceManager.processMonth();
 
-  showPhaseTransition(phase) {
-    const overlay = document.getElementById('event-overlay');
-    if (!overlay) { this.startDay(); return; }
-    overlay.classList.remove('hidden');
-    this.eventActive = true;
+    // 2. Apply auto events for this month
+    this.applyAutoEvents(this.currentMonth);
 
-    const isAr = LANG.current === 'ar';
-    const phaseName = isAr ? LANG.t(phase.nameKey) : phase.nameEn;
+    // 3. Check bankruptcy → health decay
+    const isBankrupt = ResourceManager.isBankrupt();
+    const deaths = FamilyManager.monthlyTick(this.currentMonth, isBankrupt);
 
-    overlay.innerHTML = `
-      <div class="event-panel" dir="${isAr ? 'rtl' : 'ltr'}">
-        <div class="event-day-badge">${LANG.t('day')} ${this.totalDays} — ${phase.month}</div>
-        <div class="event-title">${phaseName}</div>
-        <div class="event-story">${this.getPhaseDescription(phase)}</div>
-        <div class="event-choices">
-          <button class="btn-continue" id="phase-continue-btn">${LANG.t('continue_btn')}</button>
-        </div>
-      </div>
-    `;
-
-    document.getElementById('phase-continue-btn').onclick = () => {
-      overlay.classList.add('hidden');
-      this.eventActive = false;
-      this.startDay();
-    };
-  }
-
-  getPhaseDescription(phase) {
-    const isAr = LANG.current === 'ar';
-    const descriptions = {
-      ar: [
-        'القصف لا يتوقف. كل لحظة قد تكون الأخيرة.',
-        'الجميع يهرب. الشوارع مليئة بالنازحين. لا مكان آمن.',
-        'الحصار خانق. الطعام نفد. المجاعة تطرق الأبواب.',
-        'اجتاح الجيش رفح. آخر ملجأ يحترق.',
-        'هدنة هشة. الصمت مرعب بعد كل هذا الضجيج.',
-        'عاد القصف. كأن الهدنة لم تكن.',
-        'لا فرق بين الشمال والجنوب. كل مكان هدف.',
-        'أُعلنت الهدنة في يناير 2025. لكن ما الذي تبقى؟',
-      ],
-      en: [
-        'The bombing doesn\'t stop. Every moment could be the last.',
-        'Everyone is fleeing. Streets full of displaced people. No safe place.',
-        'The siege is suffocating. Food is gone. Famine is at the door.',
-        'The army invaded Rafah. The last refuge is burning.',
-        'A fragile ceasefire. The silence is terrifying after all that noise.',
-        'The bombing returned. As if the ceasefire never happened.',
-        'No difference between north and south. Everywhere is a target.',
-        'A ceasefire was announced in January 2025. But what remains?',
-      ]
-    };
-
-    const idx = PHASES.indexOf(phase);
-    const arr = isAr ? descriptions.ar : descriptions.en;
-    return arr[idx] || '';
-  }
-
-  showEvent(event) {
-    if (!event) {
-      this.endDay();
-      return;
-    }
-
-    this.eventActive = true;
-
-    // Trigger visual effect for bombardment events
-    if (event.id.includes('001') || event.id.includes('002') || event.id.includes('003')
-        || event.id.includes('017')) {
-      const { width, height } = this.scale;
-      const ex = Phaser.Math.Between(width * 0.2, width * 0.8);
-      const ey = Phaser.Math.Between(height * 0.3, height * 0.6);
-      this.triggerExplosionEffect(ex, ey);
-    }
-
-    const overlay = document.getElementById('event-overlay');
-    if (!overlay) { this.endDay(); return; }
-    overlay.classList.remove('hidden');
-
-    const isAr = LANG.current === 'ar';
-    const phase = PHASES[this.currentPhaseIndex];
-    const phaseName = isAr ? LANG.t(phase.nameKey) : phase.nameEn;
-
-    const title = isAr ? event.title.ar : event.title.en;
-    const story = isAr ? event.story.ar : event.story.en;
-
-    let choicesHtml = '';
-
-    if (event.noChoice) {
-      const msg = isAr ? event.consequences.message.ar : event.consequences.message.en;
-      choicesHtml = `
-        <div class="event-story" style="color:#7a6060;font-size:0.82rem;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">${msg}</div>
-        <div style="display:flex;justify-content:${isAr ? 'flex-start' : 'flex-end'}">
-          <button class="btn-continue" id="evt-continue-btn">${LANG.t('continue_btn')}</button>
-        </div>
-      `;
-    } else {
-      const choices = event.choices || [];
-      choicesHtml = `<div class="event-choices">`;
-      choices.forEach((choice, i) => {
-        const choiceText = isAr ? choice.text.ar : choice.text.en;
-        choicesHtml += `<button class="choice-btn${isAr ? ' rtl' : ''}" data-choice="${i}">${choiceText}</button>`;
-      });
-      choicesHtml += `</div>`;
-    }
-
-    overlay.innerHTML = `
-      <div class="event-panel" dir="${isAr ? 'rtl' : 'ltr'}">
-        <div class="event-day-badge">${LANG.t('day')} ${this.totalDays} · ${phaseName} · ${phase.month}</div>
-        <div class="event-title">${title}</div>
-        <div class="event-story">${story}</div>
-        ${choicesHtml}
-      </div>
-    `;
-
-    if (event.noChoice) {
-      document.getElementById('evt-continue-btn').onclick = () => {
-        this.applyConsequences(event.consequences, event);
-        overlay.classList.add('hidden');
-        this.endDay();
-      };
-    } else {
-      overlay.querySelectorAll('.choice-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const idx = parseInt(btn.dataset.choice);
-          const choice = event.choices[idx];
-          this.applyConsequences(choice.consequences, event);
-          overlay.classList.add('hidden');
-          this.endDay();
-        });
-      });
-    }
-  }
-
-  applyConsequences(cons, event) {
-    if (!cons) return;
-
-    // Resource changes
-    const delta = {};
-    if (cons.food !== undefined) delta.food = cons.food;
-    if (cons.water !== undefined) delta.water = cons.water;
-    if (cons.money !== undefined) delta.money = cons.money;
-    if (cons.medicine !== undefined) delta.medicine = cons.medicine;
-    if (cons.fuel !== undefined) delta.fuel = cons.fuel;
-    if (Object.keys(delta).length) ResourceManager.apply(delta);
-
-    // Displacement
-    if (cons.displace) {
-      ResourceManager.displacementLoss();
-      const locations = ['north', 'gaza', 'central', 'khanyunis', 'rafah'];
-      const current = FamilyManager.getLocation();
-      const idx = locations.indexOf(current);
-      const newLoc = locations[Math.min(idx + 1, locations.length - 1)];
-      FamilyManager.setLocation(newLoc);
-      this.drawBackground();
-    }
-
-    // Member effects
-    if (cons.memberEffects) {
-      for (const eff of cons.memberEffects) {
-        const phase = PHASES[this.currentPhaseIndex];
-        const died = FamilyManager.applyEffect(eff.target, eff, this.totalDays, phase.id);
-        if (died) {
-          this.pendingDeaths.push(died);
-        }
+    // 4. Apply ongoing working death hazard
+    let workDeath = null;
+    if (ResourceManager.workActive && ResourceManager.monthlyDeathHazard > 0) {
+      if (Math.random() < ResourceManager.monthlyDeathHazard) {
+        workDeath = FamilyManager.applyEffect('player', { health: -999, causeOfDeath: 'injury' }, this.currentMonth);
       }
     }
+    if (workDeath) deaths.push(workDeath);
 
-    // Show consequence message as toast
+    this.updateHUD();
+
+    if (FamilyManager.allDead()) {
+      this.endGame(false);
+      return;
+    }
+
+    // 5. Show month UI
+    this.showMonthScreen(summary, isBankrupt, deaths);
+  }
+
+  applyAutoEvents(month) {
+    const autoEvents = MONTHLY_CHALLENGES.filter(c => c.month === month && c.autoEvent);
+    for (const ev of autoEvents) {
+      const eff = ev.autoEffect;
+      if (!eff) continue;
+
+      if (eff.salaryPenaltyAdd) {
+        ResourceManager.addSalaryPenalty(eff.salaryPenaltyAdd);
+      }
+      if (eff.salaryRestore) {
+        ResourceManager.restoreSalary(eff.salaryRestore);
+      }
+      if (eff.updateBurdenId && eff.newAmount !== undefined) {
+        // Only update if burden exists and only if family has children (for baby formula)
+        if (!ev.showOnlyIfChildren || FamilyManager.hasChildren()) {
+          ResourceManager.addMonthlyBurden(eff.updateBurdenId, eff.newAmount, '', '');
+        }
+      }
+      if (eff.healthEffect) {
+        FamilyManager.applyToAll({ health: eff.healthEffect, causeOfDeath: 'disease' }, month);
+      }
+      if (eff.childrenHealthEffect) {
+        FamilyManager.applyToChildren({ health: eff.childrenHealthEffect, causeOfDeath: 'disease' }, month);
+      }
+      if (eff.deathRisk) {
+        if (Math.random() < eff.deathRisk) {
+          FamilyManager.applyEffect('random', { health: -999, causeOfDeath: 'injury' }, month);
+        }
+      }
+      if (eff.injuryRisk) {
+        if (Math.random() < eff.injuryRisk) {
+          FamilyManager.applyEffect('random', { injure: true, causeOfDeath: 'injury' }, month);
+        }
+      }
+      if (eff.savingsBonus) {
+        ResourceManager.receive(eff.savingsBonus);
+      }
+      if (eff.savingsDevaluation) {
+        ResourceManager.savings = Math.floor(ResourceManager.savings * (1 - eff.savingsDevaluation));
+      }
+      if (eff.allBurdenIncrease) {
+        ResourceManager.activeMonthlyBurdens.forEach(b => {
+          b.amount = Math.round(b.amount * (1 + eff.allBurdenIncrease));
+        });
+      }
+      if (eff.allBurdenDecrease) {
+        ResourceManager.activeMonthlyBurdens.forEach(b => {
+          b.amount = Math.round(b.amount * (1 - eff.allBurdenDecrease));
+        });
+      }
+      if (eff.moraleEffect) {
+        FamilyManager.applyToAll({ morale: eff.moraleEffect }, month);
+      }
+      if (eff.moraleBonusThenPenalty) {
+        FamilyManager.applyToAll({ morale: eff.moraleBonusThenPenalty.bonus }, month);
+        // Penalty applied next tick
+        this.time.delayedCall(2000, () => {
+          FamilyManager.applyToAll({ morale: eff.moraleBonusThenPenalty.penalty }, month);
+          this.updateHUD();
+        });
+      }
+      if (eff.foodCostIncrease) {
+        // Temporary food cost increase
+        ResourceManager.addMonthlyBurden(
+          'temp_food_' + month,
+          eff.foodCostIncrease,
+          'غلاء الطعام المؤقت',
+          'Temporary food price increase'
+        );
+        // Remove after 2 months
+        this.time.delayedCall(100, () => {
+          const removeMonth = month + (eff.durationMonths || 2);
+          this._scheduleRemoveBurden('temp_food_' + month, removeMonth);
+        });
+      }
+      if (eff.triggerEndGame) {
+        this.time.delayedCall(2000, () => this.endGame(true));
+      }
+      if (eff.medicineCost) {
+        ResourceManager.pay(eff.medicineCost);
+      }
+      if (eff.homeValueLoss) {
+        // Just narrative — morale hit applied via moraleEffect
+      }
+      if (eff.workingDeathRiskIncrease) {
+        ResourceManager.monthlyDeathHazard = Math.min(0.5,
+          ResourceManager.monthlyDeathHazard + eff.workingDeathRiskIncrease);
+      }
+      if (eff.northGazaFoodCostIncrease && FamilyManager.getLocation() === 'north') {
+        ResourceManager.addMonthlyBurden('north_food', eff.northGazaFoodCostIncrease,
+          'طعام شمال غزة', 'North Gaza food');
+        FamilyManager.applyToAll({ health: -10 }, month);
+      }
+    }
+  }
+
+  _scheduleRemoveBurden(burdenId, targetMonth) {
+    // Store for later removal
+    if (!this._pendingBurdenRemovals) this._pendingBurdenRemovals = [];
+    this._pendingBurdenRemovals.push({ burdenId, targetMonth });
+  }
+
+  showMonthScreen(summary, isBankrupt, autoDeaths) {
+    const overlay = document.getElementById('event-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+
     const isAr = LANG.current === 'ar';
-    const msg = cons.message ? (isAr ? cons.message.ar : cons.message.en) : null;
-    if (msg) this.showToast(msg);
+    const monthName = LANG.t('month_name_' + this.currentMonth) || ('Month ' + this.currentMonth);
+    const snap = ResourceManager.snapshot();
 
-    this.updateHUD();
+    // Gather challenges for this month
+    const newChallenges = MONTHLY_CHALLENGES.filter(c => {
+      if (c.month !== this.currentMonth) return false;
+      if (c.autoEvent) return false;
+      if (this.resolvedChallengeIds.has(c.id)) return false;
+      // Show aid convoy only if broke
+      if (c.showOnlyIfBroke && snap.savings >= 500) return false;
+      // Show children challenges only if has children
+      if (c.showOnlyIfChildren && !FamilyManager.hasChildren()) return false;
+      return true;
+    });
+
+    // Pending (unresolved from previous months)
+    const pendingChallenges = MONTHLY_CHALLENGES.filter(c => {
+      return c.recurring && this.pendingChallengeIds.has(c.id) && !this.resolvedChallengeIds.has(c.id);
+    });
+
+    const allChallenges = [...newChallenges, ...pendingChallenges];
+
+    // Mark new recurring challenges as pending
+    newChallenges.forEach(c => {
+      if (c.recurring) this.pendingChallengeIds.add(c.id);
+    });
+
+    // Build HTML
+    let html = `<div class="month-game-screen" dir="${isAr ? 'rtl' : 'ltr'}">`;
+
+    // Month header
+    html += `<div class="month-header">${monthName} — ${isAr ? 'الشهر ' + this.currentMonth + ' من 36' : 'Month ' + this.currentMonth + ' of 36'}</div>`;
+
+    // Month financial summary
+    const burdenPaid = summary.paid ? summary.burden : 0;
+    html += `<div class="month-summary">`;
+    if (snap.salary > 0) {
+      html += `<div class="summary-row positive">+ $${summary.earned.toLocaleString()} ${LANG.t('salary_received')}</div>`;
+    }
+    if (summary.burden > 0) {
+      html += `<div class="summary-row negative">- $${summary.burden.toLocaleString()} ${LANG.t('costs_deducted')}</div>`;
+    }
+    html += `<div class="summary-row">= $${snap.savings.toLocaleString()} ${isAr ? 'مدخرات متبقية' : 'remaining savings'}</div>`;
+    if (snap.debt > 0) {
+      html += `<div class="summary-row negative">${isAr ? 'ديون' : 'Debt'}: $${snap.debt.toLocaleString()} / $${snap.debtLimit.toLocaleString()}</div>`;
+    }
+    if (isBankrupt) {
+      html += `<div class="summary-row negative" style="font-weight:bold;">⚠ ${LANG.t('bankrupt_warning')}</div>`;
+    }
+    html += `</div>`;
+
+    // Auto deaths narrative
+    if (autoDeaths && autoDeaths.length > 0) {
+      autoDeaths.forEach(m => {
+        html += `<div class="death-notice">✕ ${m.name} — ${isAr ? 'استشهد' : 'martyred'}</div>`;
+      });
+    }
+
+    // Challenge cards
+    if (allChallenges.length > 0) {
+      allChallenges.forEach(challenge => {
+        html += this.buildChallengeCard(challenge, isAr);
+      });
+    }
+
+    // Next month button (shown after choices made, or if no challenges)
+    const nextLabel = LANG.t('next_month');
+    html += `<button class="btn-next-month" id="btn-next-month" ${allChallenges.length > 0 ? 'disabled' : ''}>${nextLabel}</button>`;
+
+    html += `</div>`;
+
+    overlay.innerHTML = html;
+
+    // Wire up choice buttons
+    if (allChallenges.length > 0) {
+      this.wireChoiceButtons(allChallenges);
+    } else {
+      document.getElementById('btn-next-month').disabled = false;
+    }
+
+    document.getElementById('btn-next-month').addEventListener('click', () => {
+      overlay.classList.add('hidden');
+      this.processChoicesAndAdvance(allChallenges);
+    });
   }
 
-  showToast(msg) {
-    const toast = document.getElementById('consequence-toast');
-    if (!toast) return;
-    toast.textContent = msg;
-    toast.classList.remove('hidden');
-    toast.style.opacity = '1';
+  buildChallengeCard(challenge, isAr) {
+    const title = isAr ? challenge.titleAr : challenge.titleEn;
+    const story = isAr ? challenge.storyAr : challenge.storyEn;
+    const realFact = isAr ? challenge.realFactAr : challenge.realFactEn;
 
-    clearTimeout(this._toastTimeout);
-    this._toastTimeout = setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.classList.add('hidden'), 500);
-    }, 3500);
+    let choicesHtml = '<div class="challenge-choices">';
+    challenge.choices.forEach((choice, i) => {
+      const text = isAr ? choice.textAr : choice.textEn;
+      let costLabel = '';
+      if (choice.oneTimeCost && choice.oneTimeCost < 0) {
+        costLabel = ` (+$${Math.abs(choice.oneTimeCost).toLocaleString()})`;
+      } else if (choice.oneTimeCost > 0) {
+        costLabel = ` (-$${choice.oneTimeCost.toLocaleString()})`;
+      }
+      if (choice.monthlyCost > 0) {
+        costLabel += ` + $${choice.monthlyCost.toLocaleString()}/${isAr ? 'شهر' : 'mo'}`;
+      }
+      if (choice.deathRisk > 0) {
+        costLabel += ` ⚠ ${Math.round(choice.deathRisk * 100)}%${isAr ? ' خطر' : ' risk'}`;
+      }
+      choicesHtml += `<button class="choice-btn" data-challenge="${challenge.id}" data-choice="${i}">${text}${costLabel ? '<span class="choice-cost">' + costLabel + '</span>' : ''}</button>`;
+    });
+    choicesHtml += '</div>';
+
+    return `
+      <div class="challenge-card" id="card-${challenge.id}">
+        <div class="challenge-title">${title}</div>
+        <div class="challenge-story">${story}</div>
+        ${choicesHtml}
+        ${realFact ? `<div class="real-fact">${realFact}</div>` : ''}
+      </div>
+    `;
   }
 
-  endDay() {
-    this.eventActive = false;
+  wireChoiceButtons(challenges) {
+    const choicesMade = {};
+    const totalChallenges = challenges.length;
 
-    // Apply daily tick (hunger/thirst/health)
-    const phase = PHASES[this.currentPhaseIndex];
-    const deaths = FamilyManager.dailyTick(ResourceManager, this.totalDays, phase.id);
+    const checkAllMade = () => {
+      const madeCount = Object.keys(choicesMade).length;
+      const btn = document.getElementById('btn-next-month');
+      if (btn) btn.disabled = madeCount < totalChallenges;
+    };
 
-    // Collect all deaths
-    const allDeaths = [...this.pendingDeaths, ...deaths];
-    this.pendingDeaths = [];
+    challenges.forEach(challenge => {
+      const card = document.getElementById('card-' + challenge.id);
+      if (!card) return;
+
+      card.querySelectorAll('.choice-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const challengeId = btn.dataset.challenge;
+          const choiceIdx = parseInt(btn.dataset.choice);
+
+          // Mark selection
+          card.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+
+          choicesMade[challengeId] = choiceIdx;
+          this.monthChoices[challengeId] = choiceIdx;
+
+          // Show consequence message in card
+          const ch = challenges.find(c => c.id === challengeId);
+          if (ch && ch.choices[choiceIdx]) {
+            const choice = ch.choices[choiceIdx];
+            const isAr = LANG.current === 'ar';
+            const msg = isAr ? choice.messageAr : choice.messageEn;
+            let msgEl = card.querySelector('.choice-message');
+            if (!msgEl) {
+              msgEl = document.createElement('div');
+              msgEl.className = 'choice-message';
+              card.appendChild(msgEl);
+            }
+            msgEl.textContent = msg;
+          }
+
+          checkAllMade();
+        });
+      });
+    });
+  }
+
+  processChoicesAndAdvance(challenges) {
+    const deaths = [];
+
+    challenges.forEach(challenge => {
+      const choiceIdx = this.monthChoices[challenge.id];
+      if (choiceIdx === undefined) return;
+
+      const choice = challenge.choices[choiceIdx];
+      if (!choice) return;
+
+      // Apply one-time cost
+      if (choice.oneTimeCost && choice.oneTimeCost > 0) {
+        ResourceManager.pay(choice.oneTimeCost);
+      } else if (choice.oneTimeCost && choice.oneTimeCost < 0) {
+        // Negative cost = income (e.g., aid convoy)
+        ResourceManager.receive(Math.abs(choice.oneTimeCost));
+      }
+
+      // Shelter setup cost
+      if (choice.shelterSetupCost) {
+        ResourceManager.pay(choice.shelterSetupCost);
+      }
+
+      // Add monthly burden
+      if (choice.burdenId && choice.monthlyCost > 0) {
+        ResourceManager.addMonthlyBurden(
+          choice.burdenId,
+          choice.monthlyCost,
+          choice.burdenLabelAr || '',
+          choice.burdenLabelEn || ''
+        );
+      }
+
+      // Work hours lost
+      if (choice.workHoursLost > 0) {
+        ResourceManager.workHours = Math.max(0, ResourceManager.workHours - choice.workHoursLost);
+      }
+
+      // Health effect (all alive)
+      if (choice.healthEffect) {
+        const causeOfDeath = choice.healthEffect < -50 ? 'injury' : 'disease';
+        FamilyManager.applyToAll({ health: choice.healthEffect, causeOfDeath }, this.currentMonth);
+      }
+
+      // Children-only health
+      if (choice.childrenOnly && choice.healthEffect) {
+        FamilyManager.applyToChildren({ health: choice.healthEffect, causeOfDeath: 'starvation' }, this.currentMonth);
+      }
+
+      // Morale effect
+      if (choice.moraleEffect) {
+        FamilyManager.applyToAll({ morale: choice.moraleEffect }, this.currentMonth);
+      }
+
+      // Death risk
+      if (choice.deathRisk > 0 && Math.random() < choice.deathRisk) {
+        const died = FamilyManager.applyEffect('random', { health: -999, causeOfDeath: 'injury' }, this.currentMonth);
+        if (died) deaths.push(died);
+      }
+
+      // Injury risk
+      if (choice.injuryRisk > 0 && Math.random() < choice.injuryRisk) {
+        FamilyManager.applyEffect('random', { injure: true }, this.currentMonth);
+      }
+
+      // Capture risk (for staying home)
+      if (choice.captureRisk > 0 && Math.random() < choice.captureRisk) {
+        if (FamilyManager.player) {
+          FamilyManager.player.captured = true;
+          FamilyManager.player.health = Math.max(0, FamilyManager.player.health - 40);
+        }
+      }
+
+      // Monthly working death hazard addition
+      if (choice.monthlyDeathHazard) {
+        ResourceManager.monthlyDeathHazard = Math.min(0.5,
+          ResourceManager.monthlyDeathHazard + choice.monthlyDeathHazard);
+      }
+
+      // Special consequences
+      if (choice.consequence === 'work_stop') {
+        ResourceManager.workActive = false;
+        ResourceManager.workHours = 0;
+      }
+      if (choice.consequence === 'emigrate') {
+        this.emigrated = true;
+      }
+
+      // Mark as resolved
+      this.resolvedChallengeIds.add(challenge.id);
+      if (this.pendingChallengeIds.has(challenge.id)) {
+        this.pendingChallengeIds.delete(challenge.id);
+      }
+    });
+
+    // Remove pending burdens scheduled for this month
+    if (this._pendingBurdenRemovals) {
+      this._pendingBurdenRemovals = this._pendingBurdenRemovals.filter(r => {
+        if (r.targetMonth <= this.currentMonth) {
+          ResourceManager.removeMonthlyBurden(r.burdenId);
+          return false;
+        }
+        return true;
+      });
+    }
 
     this.updateHUD();
 
-    if (allDeaths.length > 0) {
-      // Show death scenes one by one
-      this.showDeaths(allDeaths, 0, () => {
+    // Check emigration
+    if (this.emigrated) {
+      this.showEmigrationEnd();
+      return;
+    }
+
+    // Handle deaths from choices
+    if (deaths.length > 0) {
+      this.showDeaths(deaths, 0, () => {
         if (FamilyManager.allDead()) {
-          this.endGame();
+          this.endGame(false);
         } else {
-          this.time.delayedCall(400, () => this.startDay());
+          this.advanceMonth();
         }
       });
     } else if (FamilyManager.allDead()) {
-      this.endGame();
+      this.endGame(false);
     } else {
-      this.time.delayedCall(600, () => this.startDay());
+      this.advanceMonth();
     }
   }
+
+  advanceMonth() {
+    if (this.currentMonth >= 36) {
+      this.endGame(true);
+      return;
+    }
+    this.currentMonth++;
+    this.monthChoices = {};
+    this.time.delayedCall(300, () => this.startMonth());
+  }
+
+  // ====================== DEATHS ======================
 
   showDeaths(deaths, index, callback) {
     if (index >= deaths.length) {
       callback();
       return;
     }
-
     const member = deaths[index];
     this.scene.launch('DeathScene', {
       member,
@@ -496,88 +667,99 @@ class GameScene extends Phaser.Scene {
     });
   }
 
-  endGame() {
+  // ====================== END GAME ======================
+
+  showEmigrationEnd() {
     const overlay = document.getElementById('event-overlay');
     if (overlay) overlay.classList.add('hidden');
+    const isAr = LANG.current === 'ar';
+    this.endGame(true, 'emigrate');
+  }
+
+  endGame(completed, reason) {
+    if (this.gameOver) return;
+    this.gameOver = true;
+
+    // Save replay config
+    if (this.initialConfig) {
+      try {
+        localStorage.setItem('gazagame_replay_config', JSON.stringify(this.initialConfig));
+      } catch(e) {}
+    }
+
+    const overlay = document.getElementById('event-overlay');
+    if (overlay) overlay.classList.add('hidden');
+    const hudOverlay = document.getElementById('hud-overlay');
+    if (hudOverlay) hudOverlay.classList.add('hidden');
 
     this.scene.start('EndScene', {
-      totalDays: this.totalDays,
+      totalMonths: this.currentMonth,
       familyMembers: FamilyManager.members,
       playerName: FamilyManager.player ? FamilyManager.player.name : '',
+      completed: !!completed,
+      reason: reason || (completed ? 'survived' : 'died'),
+      financialSnapshot: ResourceManager.snapshot(),
+      emigrated: this.emigrated,
     });
   }
 
   // ====================== HUD ======================
 
   updateHUD() {
-    this.updateResourcesPanel();
-    this.updatePhasePanel();
+    this.updateFinancialPanel();
     this.updateFamilyPanel();
   }
 
-  updateResourcesPanel() {
+  updateFinancialPanel() {
     const panel = document.getElementById('hud-resources');
     if (!panel) return;
-
     const isAr = LANG.current === 'ar';
-    const R = ResourceManager;
-
-    const items = [
-      { key: 'food', icon: '🍞', val: Math.floor(R.food) },
-      { key: 'water', icon: '💧', val: Math.floor(R.water) },
-      { key: 'medicine', icon: '💊', val: Math.floor(R.medicine) },
-      { key: 'money', icon: '💰', val: Math.floor(R.money) },
-    ];
-
-    let html = '';
-    for (const item of items) {
-      const low = item.val <= 1;
-      const warn = item.val <= 3 && item.val > 1;
-      const cls = low ? 'hud-res-val low' : warn ? 'hud-res-val warn' : 'hud-res-val';
-      html += `<div>${item.icon} ${LANG.t(item.key)}: <span class="${cls}">${item.val}</span></div>`;
-    }
-    panel.innerHTML = html;
-  }
-
-  updatePhasePanel() {
-    const panel = document.getElementById('hud-phase');
-    if (!panel) return;
-
-    const phase = PHASES[this.currentPhaseIndex];
-    if (!phase) return;
-
-    const isAr = LANG.current === 'ar';
-    const phaseName = isAr ? LANG.t(phase.nameKey) : phase.nameEn;
-    const location = FamilyManager.getLocation();
-    const locKey = location;
+    const snap = ResourceManager.snapshot();
 
     panel.innerHTML = `
-      <div class="hud-phase-name">${phaseName}</div>
-      <div style="font-size:0.68rem;color:#665;">${LANG.t(locKey)} · ${LANG.t('day')} ${this.totalDays}</div>
-      <div style="font-size:0.68rem;color:#554;">${phase.month}</div>
+      <div class="financial-panel" dir="${isAr ? 'rtl' : 'ltr'}">
+        <div class="financial-row">
+          <span class="financial-label">${LANG.t('savings')}:</span>
+          <span class="financial-value ${snap.savings < 500 ? 'val-danger' : ''}">$${snap.savings.toLocaleString()}</span>
+        </div>
+        <div class="financial-row">
+          <span class="financial-label">${LANG.t('salary')}:</span>
+          <span class="financial-value">$${snap.salary.toLocaleString()}/${isAr ? 'شهر' : 'mo'}</span>
+        </div>
+        <div class="financial-row">
+          <span class="financial-label">${LANG.t('monthly_burden')}:</span>
+          <span class="financial-value ${snap.burden > snap.salary ? 'val-warn' : ''}">$${snap.burden.toLocaleString()}/${isAr ? 'شهر' : 'mo'}</span>
+        </div>
+        ${snap.debt > 0 ? `<div class="financial-row">
+          <span class="financial-label">${LANG.t('debt')}:</span>
+          <span class="financial-value val-warn">$${snap.debt.toLocaleString()}/$${snap.debtLimit.toLocaleString()}</span>
+        </div>` : ''}
+        <div class="financial-row">
+          <span class="financial-label">${LANG.t('work_hours')}:</span>
+          <span class="financial-value">${snap.workHours}/8</span>
+        </div>
+      </div>
     `;
   }
 
   updateFamilyPanel() {
     const panel = document.getElementById('hud-family');
     if (!panel) return;
+    let html = '<div class="family-panel">';
 
-    let html = '';
     for (const m of FamilyManager.members) {
       const isDead = m.status === 'dead';
-      const healthPct = Math.max(0, Math.min(100, m.health));
-      const hungerPct = Math.max(0, Math.min(100, m.hunger));
-      const healthCls = healthPct < 20 ? 'mini-bar-fill health critical' : 'mini-bar-fill health';
+      const hp = Math.max(0, Math.min(100, m.health));
+      const hpColor = hp > 60 ? '#6a9060' : hp > 30 ? '#c77a1a' : '#c0392b';
 
       html += `
-        <div class="family-card${isDead ? ' dead' : ''}">
-          <div class="family-card-name">${m.name}</div>
-          <div class="mini-bar"><div class="${healthCls}" style="width:${healthPct}%"></div></div>
-          <div class="mini-bar"><div class="mini-bar-fill hunger" style="width:${hungerPct}%"></div></div>
-          ${isDead ? '<div style="font-size:0.65rem;color:#443;margin-top:2px;">✕</div>' : ''}
+        <div class="member-row${isDead ? ' member-dead' : ''}">
+          <span class="member-name">${m.name}${isDead ? ' ✕' : ''}</span>
+          <div class="health-bar"><div class="health-fill" style="width:${hp}%;background:${hpColor}"></div></div>
         </div>
       `;
     }
+    html += '</div>';
     panel.innerHTML = html;
   }
 }
